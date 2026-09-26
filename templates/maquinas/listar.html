@@ -1,0 +1,94 @@
+{#
+  maquinas/listar.html
+  --------------------
+  Igual a listagem de departamentos, com FILTROS a mais. Os filtros sao
+  um formulario GET: tudo vai para a URL (/maquinas/?status=PARADO) e o
+  link do resultado pode ser copiado e mandado para alguem.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Maquinas - TechMaint{% endblock %}
+
+{% block conteudo %}
+
+  <div class="barra">
+    <h1>Maquinas</h1>
+    {% if pode('maquinas:editar') %}
+      <a class="botao botao--primario" href="{{ url_for('maquinas.novo') }}">+ Nova</a>
+    {% endif %}
+  </div>
+
+  <form class="busca" method="GET" action="{{ url_for('maquinas.listar') }}">
+    <input type="text" name="busca" placeholder="Nome ou patrimonio" value="{{ busca }}" aria-label="Buscar">
+    <select name="departamento" aria-label="Departamento">
+      <option value="">Todos os departamentos</option>
+      {% for d in departamentos %}
+        <option value="{{ d.id }}" {% if d.id == departamento %}selected{% endif %}>{{ d.nome }}</option>
+      {% endfor %}
+    </select>
+    <select name="status" aria-label="Status">
+      <option value="">Todos os status</option>
+      {% for codigo, texto in status_possiveis.items() %}
+        <option value="{{ codigo }}" {% if codigo == status %}selected{% endif %}>{{ texto }}</option>
+      {% endfor %}
+    </select>
+    <button class="botao" type="submit">Filtrar</button>
+    {% if busca or departamento or status %}
+      <a class="botao botao--neutro" href="{{ url_for('maquinas.listar') }}">Limpar</a>
+    {% endif %}
+  </form>
+
+  {% if maquinas %}
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Patrimonio</th>
+          <th>Departamento</th>
+          <th>Status</th>
+          <th class="numero">Pecas</th>
+          {% if pode('maquinas:editar') %}<th>Acoes</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in maquinas %}
+          <tr>
+            <td>
+              {{ m.nome }}
+              {% if m.fabricante or m.modelo %}
+                <small class="detalhe">{{ m.fabricante or '' }} {{ m.modelo or '' }}</small>
+              {% endif %}
+            </td>
+            <td>{{ m.patrimonio or '-' }}</td>
+            <td>{{ m.departamento }}</td>
+            <td>
+              {# "EM_MANUTENCAO" -> classe "etiqueta--em-manutencao" #}
+              <span class="etiqueta etiqueta--{{ m.status|lower|replace('_', '-') }}">
+                {{ status_possiveis[m.status] }}
+              </span>
+            </td>
+            <td class="numero">
+              {% if pode('pecas:ver') %}
+                <a href="{{ url_for('pecas.listar', maquina=m.id) }}">{{ m.total_pecas }}</a>
+              {% else %}{{ m.total_pecas }}{% endif %}
+            </td>
+            {% if pode('maquinas:editar') %}
+              <td class="acoes">
+                <a class="botao botao--neutro" href="{{ url_for('maquinas.editar', id_maquina=m.id) }}">Editar</a>
+                <form method="POST" action="{{ url_for('maquinas.apagar', id_maquina=m.id) }}"
+                      data-confirmar="Apagar a maquina {{ m.nome }}?">
+                  {{ csrf() }}
+                  <button class="botao botao--perigo" type="submit">Apagar</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vazio">Nenhuma maquina encontrada.</p>
+  {% endif %}
+
+{% endblock %}

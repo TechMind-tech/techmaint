@@ -1,0 +1,67 @@
+{#
+  departamentos/listar.html
+  -------------------------
+  O R do CRUD. Tela de REFERENCIA: as listagens dos outros modulos seguem
+  esta mesma estrutura (barra com titulo e botao, busca, tabela, vazio).
+
+  Os botoes de Novo, Editar e Apagar so aparecem para quem pode editar.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Departamentos - TechMaint{% endblock %}
+
+{% block conteudo %}
+
+  <div class="barra">
+    <h1>Departamentos</h1>
+    {% if pode('departamentos:editar') %}
+      <a class="botao botao--primario" href="{{ url_for('departamentos.novo') }}">+ Novo</a>
+    {% endif %}
+  </div>
+
+  <form class="busca" method="GET" action="{{ url_for('departamentos.listar') }}">
+    <input type="text" name="busca" placeholder="Buscar por nome" value="{{ busca }}" aria-label="Buscar por nome">
+    <button class="botao" type="submit">Buscar</button>
+    {% if busca %}<a class="botao botao--neutro" href="{{ url_for('departamentos.listar') }}">Limpar</a>{% endif %}
+  </form>
+
+  {% if departamentos %}
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Responsavel</th>
+          <th class="numero">Maquinas</th>
+          {% if pode('departamentos:editar') %}<th>Acoes</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in departamentos %}
+          <tr>
+            <td>{{ d.nome }}</td>
+            <td>{{ d.responsavel or '-' }}</td>
+            <td class="numero">
+              {# Link para a lista de maquinas ja filtrada por este departamento #}
+              <a href="{{ url_for('maquinas.listar', departamento=d.id) }}">{{ d.total_maquinas }}</a>
+            </td>
+            {% if pode('departamentos:editar') %}
+              <td class="acoes">
+                <a class="botao botao--neutro" href="{{ url_for('departamentos.editar', id_departamento=d.id) }}">Editar</a>
+                {# data-confirmar: o script no base.html pergunta antes de enviar #}
+                <form method="POST" action="{{ url_for('departamentos.apagar', id_departamento=d.id) }}"
+                      data-confirmar="Apagar o departamento {{ d.nome }}?">
+                  {{ csrf() }}
+                  <button class="botao botao--perigo" type="submit">Apagar</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vazio">Nenhum departamento {% if busca %}encontrado{% else %}cadastrado ainda{% endif %}.</p>
+  {% endif %}
+
+{% endblock %}
