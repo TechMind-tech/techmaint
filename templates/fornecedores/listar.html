@@ -1,0 +1,79 @@
+{#
+  fornecedores/listar.html
+  ------------------------
+  Por padrao mostra so os ATIVOS. A caixinha "mostrar inativos" coloca
+  ?inativos=1 na URL. Fornecedor inativo ganha o botao Reativar.
+  O CNPJ vem do banco so com numeros e ganha a mascara pelo filtro |cnpj.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Fornecedores - TechMaint{% endblock %}
+
+{% block conteudo %}
+
+  <div class="barra">
+    <h1>Fornecedores</h1>
+    {% if pode('fornecedores:editar') %}
+      <a class="botao botao--primario" href="{{ url_for('fornecedores.novo') }}">+ Novo</a>
+    {% endif %}
+  </div>
+
+  <form class="busca" method="GET" action="{{ url_for('fornecedores.listar') }}">
+    <input type="text" name="busca" placeholder="Razao social, fantasia ou CNPJ" value="{{ busca }}" aria-label="Buscar">
+    <label class="caixinha">
+      <input type="checkbox" name="inativos" value="1" {% if inativos %}checked{% endif %}> Mostrar inativos
+    </label>
+    <button class="botao" type="submit">Buscar</button>
+    {% if busca or inativos %}<a class="botao botao--neutro" href="{{ url_for('fornecedores.listar') }}">Limpar</a>{% endif %}
+  </form>
+
+  {% if fornecedores %}
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Razao social</th>
+          <th>CNPJ</th>
+          <th>Contato</th>
+          {% if inativos %}<th>Situacao</th>{% endif %}
+          {% if pode('fornecedores:editar') %}<th>Acoes</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in fornecedores %}
+          <tr class="{% if not f.ativo %}linha--inativa{% endif %}">
+            <td>{{ f.razao_social }}{% if f.nome_fantasia %}<small class="detalhe">{{ f.nome_fantasia }}</small>{% endif %}</td>
+            <td class="nowrap">{{ f.cnpj | cnpj }}</td>
+            <td>
+              {{ f.contato or '' }}
+              <small class="detalhe">{{ f.email or '' }}{% if f.email and f.telefone %} - {% endif %}{{ f.telefone or '' }}</small>
+            </td>
+            {% if inativos %}
+              <td><span class="etiqueta etiqueta--{{ 'ok' if f.ativo else 'inativo' }}">{{ 'Ativo' if f.ativo else 'Inativo' }}</span></td>
+            {% endif %}
+            {% if pode('fornecedores:editar') %}
+              <td class="acoes">
+                <a class="botao botao--neutro" href="{{ url_for('fornecedores.editar', id_fornecedor=f.id) }}">Editar</a>
+                {% if f.ativo %}
+                  <form method="POST" action="{{ url_for('fornecedores.desativar', id_fornecedor=f.id) }}"
+                        data-confirmar="Desativar o fornecedor {{ f.razao_social }}? O historico sera mantido.">
+                    {{ csrf() }}
+                    <button class="botao botao--perigo" type="submit">Desativar</button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="{{ url_for('fornecedores.reativar', id_fornecedor=f.id) }}">
+                    {{ csrf() }}
+                    <button class="botao" type="submit">Reativar</button>
+                  </form>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vazio">Nenhum fornecedor encontrado.</p>
+  {% endif %}
+
+{% endblock %}

@@ -1,0 +1,31 @@
+{#
+  prestadores/form.html
+  ----------------------
+  O CNPJ pode ser digitado com ou sem pontuacao. O servidor tira a
+  pontuacao, confere os digitos verificadores e salva so os numeros.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import campo, csrf %}
+
+{% block titulo %}{{ titulo }} - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <h1>{{ titulo }}</h1>
+
+  <form class="formulario" method="POST">
+    {{ csrf() }}
+    {{ campo("razao_social", "Razao social", item, erros, obrigatorio=true, extra='maxlength=150') }}
+    {{ campo("cnpj", "CNPJ", item, erros, obrigatorio=true, ajuda="Com ou sem pontuacao: 00.000.000/0000-00", extra='inputmode=numeric maxlength=18') }}
+    {{ campo("especialidade", "Especialidade", item, erros, ajuda="Ex.: Eletrica, Refrigeracao, Hidraulica", extra='maxlength=80') }}
+    <div class="linha">
+      <div class="coluna">{{ campo("email", "E-mail", item, erros, tipo="email", extra='maxlength=120') }}</div>
+      <div class="coluna">{{ campo("telefone", "Telefone", item, erros, tipo="tel", extra='maxlength=20') }}</div>
+    </div>
+    {{ campo("contato", "Pessoa de contato", item, erros, extra='maxlength=100') }}
+
+    <div class="acoes-formulario">
+      <button class="botao botao--primario" type="submit">Salvar</button>
+      <a class="botao botao--neutro" href="{{ url_for('prestadores.listar') }}">Cancelar</a>
+    </div>
+  </form>
+{% endblock %}
