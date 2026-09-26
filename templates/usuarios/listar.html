@@ -1,0 +1,82 @@
+{#
+  usuarios/listar.html
+  --------------------
+  Usuarios e os perfis de cada um. Usuario nao e apagado: e desativado
+  (e pode ser reativado). So quem tem 'usuarios:editar' ve os botoes.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Usuarios - TechMaint{% endblock %}
+
+{% block conteudo %}
+
+  <div class="barra">
+    <h1>Usuarios</h1>
+    {% if pode('usuarios:editar') %}
+      <a class="botao botao--primario" href="{{ url_for('usuarios.novo') }}">+ Novo</a>
+    {% endif %}
+  </div>
+
+  <form class="busca" method="GET" action="{{ url_for('usuarios.listar') }}">
+    <input type="text" name="busca" placeholder="Nome ou login" value="{{ busca }}" aria-label="Buscar">
+    <label class="caixinha">
+      <input type="checkbox" name="inativos" value="1" {% if inativos %}checked{% endif %}> Mostrar inativos
+    </label>
+    <button class="botao" type="submit">Buscar</button>
+    {% if busca or inativos %}<a class="botao botao--neutro" href="{{ url_for('usuarios.listar') }}">Limpar</a>{% endif %}
+  </form>
+
+  {% if usuarios %}
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Login</th>
+          <th>Perfis</th>
+          {% if inativos %}<th>Situacao</th>{% endif %}
+          {% if pode('usuarios:editar') %}<th>Acoes</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+          <tr class="{% if not u.ativo %}linha--inativa{% endif %}">
+            <td>{{ u.nome }}{% if u.email %}<small class="detalhe">{{ u.email }}</small>{% endif %}</td>
+            <td>{{ u.login }}</td>
+            <td>
+              {% for perfil in (u.perfis or '').split(', ') if perfil %}
+                <span class="etiqueta etiqueta--perfil">{{ perfil }}</span>
+              {% else %}-{% endfor %}
+            </td>
+            {% if inativos %}
+              <td><span class="etiqueta etiqueta--{{ 'ok' if u.ativo else 'inativo' }}">{{ 'Ativo' if u.ativo else 'Inativo' }}</span></td>
+            {% endif %}
+            {% if pode('usuarios:editar') %}
+              <td class="acoes">
+                <a class="botao botao--neutro" href="{{ url_for('usuarios.editar', id_usuario=u.id) }}">Editar</a>
+                {% if u.ativo %}
+                  {# Ninguem desativa a si mesmo: o botao nem aparece (e a rota tambem recusa) #}
+                  {% if u.id != usuario_logado.id %}
+                    <form method="POST" action="{{ url_for('usuarios.desativar', id_usuario=u.id) }}"
+                          data-confirmar="Desativar o usuario {{ u.login }}? Ele nao conseguira mais entrar.">
+                      {{ csrf() }}
+                      <button class="botao botao--perigo" type="submit">Desativar</button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  <form method="POST" action="{{ url_for('usuarios.reativar', id_usuario=u.id) }}">
+                    {{ csrf() }}
+                    <button class="botao" type="submit">Reativar</button>
+                  </form>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vazio">Nenhum usuario encontrado.</p>
+  {% endif %}
+
+{% endblock %}

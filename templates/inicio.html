@@ -1,0 +1,48 @@
+{#
+  inicio.html
+  -----------
+  Pagina inicial depois do login: um cartao para cada modulo que o perfil
+  da pessoa pode ver. Um CLIENTE ve menos cartoes que um GESTOR.
+#}
+{% extends "base.html" %}
+
+{% block titulo %}Inicio - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <h1>Ola, {{ usuario_logado.nome }}</h1>
+  <p class="subtitulo">O que voce quer fazer hoje?</p>
+
+  {% if alertas %}
+    <p class="aviso aviso--alerta">
+      <strong>{{ alertas }} peca(s) abaixo do estoque minimo.</strong>
+      <a href="{{ url_for('pecas.listar', alerta=1) }}">Ver quais repor</a>
+    </p>
+  {% endif %}
+
+  <div class="cartoes">
+    {% if pode('maquinas:ver') %}
+      <a class="cartao" href="{{ url_for('maquinas.listar') }}">
+        <strong>Maquinas</strong><span>Equipamentos por departamento e status</span></a>
+    {% endif %}
+    {% if pode('departamentos:ver') %}
+      <a class="cartao" href="{{ url_for('departamentos.listar') }}">
+        <strong>Departamentos</strong><span>Setores da empresa e seus responsaveis</span></a>
+    {% endif %}
+    {% if pode('pecas:ver') %}
+      <a class="cartao" href="{{ url_for('pecas.listar') }}">
+        <strong>Pecas e estoque</strong><span>Saldo, minimo, maximo e alertas de reposicao</span></a>
+    {% endif %}
+    {% if pode('fornecedores:ver') %}
+      <a class="cartao" href="{{ url_for('fornecedores.listar') }}">
+        <strong>Fornecedores</strong><span>Quem vende as pecas</span></a>
+    {% endif %}
+    {% if pode('prestadores:ver') %}
+      <a class="cartao" href="{{ url_for('prestadores.listar') }}">
+        <strong>Prestadores de servico</strong><span>Quem executa a manutencao</span></a>
+    {% endif %}
+    {% if pode('usuarios:ver') %}
+      <a class="cartao" href="{{ url_for('usuarios.listar') }}">
+        <strong>Usuarios</strong><span>Acessos e perfis</span></a>
+    {% endif %}
+  </div>
+{% endblock %}

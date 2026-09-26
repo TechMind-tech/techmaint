@@ -12,6 +12,7 @@
     6. Formulario
     7. Avisos e etiquetas
     8. Celular
+    9. Sprint 2: menu por perfil, erros de campo, estoque, login, cartoes
 */
 
 /* -------------------------------------------------- 1. Variaveis --------- */
@@ -24,6 +25,8 @@
   --cor-primaria: #1f6feb;
   --cor-primaria-escura: #1a5fd0;
   --cor-perigo: #d1242f;
+  --cor-alerta: #9a6700;
+  --cor-alerta-fundo: #fff8c5;
   --cor-texto: #1f2328;
   --cor-texto-fraco: #656d76;
   --cor-borda: #d8dee4;
@@ -79,7 +82,7 @@ h1 {
 }
 
 .conteudo {
-  max-width: 900px;   /* linha muito longa cansa de ler */
+  max-width: 1040px;  /* linha muito longa cansa de ler */
   margin: 24px auto;  /* `auto` nas laterais centraliza o bloco */
   padding: 0 16px;
 }
@@ -182,9 +185,18 @@ h1 {
   border-bottom: none; /* a ultima linha nao precisa de borda embaixo */
 }
 
+/* Celula de acoes: os botoes (e os <form> do apagar) ficam lado a lado.
+   Nao usamos display:flex direto no <td>: isso tira a celula do layout
+   da tabela e as bordas/fundos da linha ficam desalinhados. */
 .acoes {
-  display: flex;
-  gap: 8px;
+  white-space: nowrap;
+}
+
+.acoes > a,
+.acoes > form {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 .vazio {
@@ -201,7 +213,7 @@ h1 {
   display: flex;
   flex-direction: column; /* um campo embaixo do outro */
   gap: 6px;
-  max-width: 460px;
+  max-width: 520px;
   margin-top: 16px;
   padding: 20px;
   background: var(--cor-caixa);
@@ -279,6 +291,263 @@ h1 {
   color: var(--cor-perigo);
 }
 
+/* -------------------------------------------------- 9. Sprint 2 -------- */
+
+/* Cabecalho com tres partes: marca | menu | usuario logado.
+   flex-wrap deixa quebrar linha quando nao cabe (celular). */
+.cabecalho {
+  flex-wrap: wrap;
+}
+
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  flex: 1;              /* o menu ocupa o meio */
+}
+
+.sessao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.sessao__nome {
+  color: var(--cor-texto-fraco);
+}
+
+.botao--pequeno {
+  padding: 4px 10px;
+  font-size: 0.82rem;
+}
+
+.botao--largo {
+  width: 100%;
+  text-align: center;
+}
+
+.botao--neutro {
+  background: var(--cor-caixa);
+}
+
+.subtitulo {
+  color: var(--cor-texto-fraco);
+  margin: 4px 0 20px;
+}
+
+/* Texto pequeno embaixo do principal, numa celula da tabela */
+.detalhe {
+  display: block;
+  color: var(--cor-texto-fraco);
+  font-size: 0.8rem;
+}
+
+.numero {
+  text-align: right !important;  /* numero alinha a direita, sempre */
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.busca select {
+  padding: 7px 10px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  font-size: 0.9rem;
+  background: var(--cor-caixa);
+}
+
+.caixinha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* --- Formulario: obrigatorio, ajuda e erro por campo ------------------- */
+.obrigatorio {
+  color: var(--cor-perigo);
+}
+
+.ajuda {
+  color: var(--cor-texto-fraco);
+  font-size: 0.8rem;
+}
+
+.erro-campo {
+  color: var(--cor-perigo);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.formulario input.invalido,
+.formulario select.invalido,
+.grupo-caixinhas.invalido {
+  border-color: var(--cor-perigo);
+  background: #fff8f8;
+}
+
+/* Dois campos lado a lado (fabricante | modelo). No celular, empilham. */
+.linha {
+  display: flex;
+  gap: 12px;
+}
+
+.coluna {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.formulario fieldset {
+  min-width: 0;          /* sem isso o fieldset "vaza" da caixa do formulario */
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: 4px 14px 14px;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formulario legend {
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0 6px;
+}
+
+.formulario .caixinha--bloco {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  white-space: normal;
+  margin-top: 6px;
+}
+
+.caixinha--bloco input {
+  margin-top: 4px;
+  flex-shrink: 0;        /* no celular o flex espremia a caixinha */
+  width: 16px;
+  height: 16px;
+}
+
+.saldo {
+  margin: 6px 0;
+}
+
+.saldo .ajuda {
+  display: block;
+}
+
+.formulario input,
+.formulario select {
+  width: 100%;
+  min-width: 0;
+}
+
+.formulario .caixinha input {
+  width: auto;           /* checkbox nao estica */
+}
+
+.formulario--login {
+  margin: 40px auto;
+  max-width: 360px;
+}
+
+/* --- Avisos e linhas destacadas ---------------------------------------- */
+.aviso--alerta {
+  background: var(--cor-alerta-fundo);
+  border: 1px solid #eac54f;
+  color: var(--cor-alerta);
+}
+
+.aviso--alerta a {
+  color: inherit;
+  font-weight: 600;
+}
+
+/* Peca abaixo do minimo: fundo vermelho claro + faixa na esquerda */
+.linha--alerta td {
+  background: #fff5f5;
+}
+
+.linha--alerta td:first-child {
+  box-shadow: inset 4px 0 0 var(--cor-perigo);
+}
+
+.linha--inativa td {
+  color: var(--cor-texto-fraco);
+}
+
+.etiqueta--repor {
+  background: #ffebe9;
+  color: var(--cor-perigo);
+}
+
+.etiqueta--excesso {
+  background: var(--cor-alerta-fundo);
+  color: var(--cor-alerta);
+}
+
+.etiqueta--ok {
+  background: #dafbe1;
+  color: #1a7f37;
+}
+
+.etiqueta--inativo {
+  background: #eaeef2;
+  color: var(--cor-texto-fraco);
+}
+
+.etiqueta--perfil {
+  background: #ddf4ff;
+  color: #0550ae;
+  margin: 1px 2px 1px 0;
+}
+
+/* --- Pagina inicial: um cartao por modulo ------------------------------ */
+.cartoes {
+  display: grid;
+  /* quantas colunas couberem, cada uma com no minimo 220px */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: var(--cor-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.cartao:hover {
+  border-color: var(--cor-primaria);
+}
+
+.cartao span {
+  color: var(--cor-texto-fraco);
+  font-size: 0.88rem;
+}
+
+.erro-codigo {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--cor-texto-fraco);
+}
+
 /* -------------------------------------------------- 8. Celular ---------- */
 /*
   Media query: as regras abaixo so valem em telas de ate 600px.
@@ -295,5 +564,19 @@ h1 {
   .tabela {
     display: block;
     overflow-x: auto;
+  }
+
+  .linha {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .busca .caixinha {
+    justify-content: flex-start;
+  }
+
+  .sessao {
+    width: 100%;
+    justify-content: space-between;
   }
 }

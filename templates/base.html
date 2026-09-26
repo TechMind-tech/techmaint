@@ -2,58 +2,79 @@
 {#
   base.html
   ---------
-  O "molde" das paginas. Cabecalho, rodape e o <head> ficam aqui uma vez so.
+  O "molde" das paginas. Cabecalho, menu, avisos e rodape ficam aqui uma
+  vez so. Cada pagina filha comeca com {% extends "base.html" %} e
+  preenche o bloco `conteudo`.
 
-  Cada pagina filha comeca com:
-      {% extends "base.html" %}
-  e preenche o buraco chamado `conteudo`:
-      {% block conteudo %} ...o que muda... {% endblock %}
+  Novidades desta versao:
+  - o menu so mostra o que o PERFIL da pessoa pode ver: pode('x:ver').
+    Isso e so conforto visual. A seguranca de verdade esta na rota
+    (@requer_permissao), porque qualquer um pode digitar a URL na mao.
+  - o botao Sair e um formulario POST com o token CSRF.
 
-  Assim voce escreve o menu uma vez e ele aparece em todas as telas.
-
-  Atencao: este bloco e um comentario do Jinja (abre com chave-cerquilha
-  e fecha com cerquilha-chave), nao um comentario de HTML.
-  Dentro de comentario HTML o Jinja AINDA executa as tags e daria erro.
-  Entao: comentario que cita tag do Jinja vai em comentario do Jinja.
+  Este bloco e um comentario do Jinja (chave-cerquilha), porque cita tags.
+  Dentro de comentario HTML o Jinja AINDA executaria as tags.
 #}
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}TechMaint{% endblock %}</title>
-  <!--
-    url_for('static', filename=...) monta o caminho do arquivo sozinho.
-    Melhor que escrever "/static/css/style.css" na mao.
-  -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
   <header class="cabecalho">
-    <a class="marca" href="{{ url_for('listar') }}">TechMaint</a>
-    <nav>
-      <a href="{{ url_for('listar') }}">Equipamentos</a>
-    </nav>
+    <a class="marca" href="{{ url_for('inicio') }}">TechMaint</a>
+
+    {% if usuario_logado %}
+      <nav class="menu">
+        {% if pode('maquinas:ver') %}<a href="{{ url_for('maquinas.listar') }}">Maquinas</a>{% endif %}
+        {% if pode('departamentos:ver') %}<a href="{{ url_for('departamentos.listar') }}">Departamentos</a>{% endif %}
+        {% if pode('pecas:ver') %}<a href="{{ url_for('pecas.listar') }}">Pecas e estoque</a>{% endif %}
+        {% if pode('fornecedores:ver') %}<a href="{{ url_for('fornecedores.listar') }}">Fornecedores</a>{% endif %}
+        {% if pode('prestadores:ver') %}<a href="{{ url_for('prestadores.listar') }}">Prestadores</a>{% endif %}
+        {% if pode('usuarios:ver') %}<a href="{{ url_for('usuarios.listar') }}">Usuarios</a>{% endif %}
+      </nav>
+
+      <div class="sessao">
+        <span class="sessao__nome">{{ usuario_logado.nome }}</span>
+        <form method="POST" action="{{ url_for('usuarios.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="botao botao--neutro botao--pequeno" type="submit">Sair</button>
+        </form>
+      </div>
+    {% endif %}
   </header>
 
   <main class="conteudo">
 
-    <!--
-      Mensagens flash: os avisos que o app.py manda com flash().
-      Aparecem uma vez e somem na proxima pagina.
-      A "categoria" (sucesso / erro) vira classe CSS para mudar a cor.
-    -->
     {% with mensagens = get_flashed_messages(with_categories=true) %}
       {% for categoria, texto in mensagens %}
-        <p class="aviso aviso--{{ categoria }}">{{ texto }}</p>
+        <p class="aviso aviso--{{ categoria }}" role="status">{{ texto }}</p>
       {% endfor %}
     {% endwith %}
 
     {% block conteudo %}{% endblock %}
   </main>
 
+  {#
+    Confirmacao antes de apagar/desativar. Todo <form data-confirmar="...">
+    pergunta antes de enviar; se a pessoa clicar em Cancelar, nada acontece.
+    Um script so para o sistema inteiro, em vez de um onsubmit em cada linha
+    (e o texto fica protegido pelo escape automatico do Jinja).
+  #}
+  <script>
+    document.addEventListener("submit", function (evento) {
+      var mensagem = evento.target.dataset.confirmar;
+      if (mensagem && !window.confirm(mensagem)) {
+        evento.preventDefault();
+      }
+    });
+  </script>
+
   <footer class="rodape">
-    TechMaint - projeto base de CRUD com Flask
+    TechMaint - manutencao predial e de maquinas
   </footer>
 
 </body>

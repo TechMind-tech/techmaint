@@ -1,0 +1,29 @@
+{#
+  usuarios/login.html
+  -------------------
+  Tela de login. O formulario envia para a propria URL (/login), mantendo
+  o ?next= que diz para onde voltar depois de entrar.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Entrar - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <form class="formulario formulario--login" method="POST">
+    {{ csrf() }}
+    <h1>Entrar</h1>
+    <p class="subtitulo">Sistema de manutencao predial e de maquinas</p>
+
+    <label for="login">Login</label>
+    <input type="text" id="login" name="login" value="{{ login }}"
+           autocomplete="username" autocapitalize="none" required autofocus>
+
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" name="senha" autocomplete="current-password" required>
+
+    <div class="acoes-formulario">
+      <button class="botao botao--primario botao--largo" type="submit">Entrar</button>
+    </div>
+  </form>
+{% endblock %}
