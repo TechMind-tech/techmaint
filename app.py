@@ -1,149 +1,174 @@
 """
 app.py
 ------
-O coracao da aplicacao: aqui ficam as ROTAS.
+O ponto de partida da aplicacao. Aqui a gente:
 
-Rota = um endereco do navegador ligado a uma funcao Python.
-Quando alguem abre http://127.0.0.1:5000/, o Flask executa a funcao
-que estiver marcada com @app.route("/").
+  1. cria o app Flask
+  2. registra os MODULOS (cada um com as suas rotas, em modulos/)
+  3. liga o que vale para todas as paginas: usuario logado, CSRF,
+     filtros de formatacao e paginas de erro
+
+As rotas de cada assunto NAO ficam mais aqui: ficam em
+modulos/<assunto>/rotas.py. Isso e o que o README chamava de
+"quando passar de tres ou quatro entidades, vale estudar Blueprints".
 
 Fluxo de uma pagina:
-    navegador  ->  rota (app.py)  ->  banco (database.py)  ->  HTML (templates/)
+    navegador -> rota (modulos/x/rotas.py) -> SQL (modulos/x/dados.py) -> banco
+                        |
+                        v
+                 template (templates/x/) -> HTML pronto -> navegador
 
 Para rodar:
     python app.py
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+import os
+import sqlite3
+
+from flask import Flask, g, jsonify, render_template
 
 import database
+import seed
+from modulos.departamentos.rotas import bp as departamentos_bp
+from modulos.fornecedores.rotas import bp as fornecedores_bp
+from modulos.maquinas.rotas import bp as maquinas_bp
+from modulos.pecas import dados as pecas_dados
+from modulos.pecas.rotas import bp as pecas_bp
+from modulos.prestadores.rotas import bp as prestadores_bp
+from modulos.usuarios.rotas import bp as usuarios_bp
+from seguranca import (carregar_usuario_logado, conferir_csrf, eh_api, pode,
+                       requer_login, token_csrf)
+from validadores import formatar_cnpj
 
-# Cria a aplicacao. O `__name__` diz ao Flask onde procurar
-# as pastas `templates/` e `static/`.
 app = Flask(__name__)
 
-# Chave usada para assinar as mensagens flash (os avisos verdes do topo).
-# Em um projeto real, isso vem de uma variavel de ambiente, nunca do codigo.
-app.secret_key = "troque-esta-chave-em-producao"
+# Chave que assina o cookie da sessao (e por isso o login funciona).
+# Em producao ela vem de uma variavel de ambiente, nunca do codigo.
+app.secret_key = os.environ.get("TECHMAINT_SECRET_KEY", "troque-esta-chave-em-producao")
 
-# Opcoes do campo status. Ficam numa lista para nao repetir no HTML
-# e para ser facil adicionar uma opcao nova depois.
-STATUS_POSSIVEIS = ["Operando", "Em manutencao", "Parado"]
+# SameSite=Lax: o navegador nao manda o cookie da sessao em POST vindo de
+# outro site. Mais uma camada contra CSRF, junto com o token.
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Mantem os campos do JSON na ordem em que foram escritos (nao alfabetica).
+app.json.sort_keys = False
 
 
 # ---------------------------------------------------------------------------
-# READ - lista todos (pagina inicial)
+# 1. Modulos (Blueprints)
+# ---------------------------------------------------------------------------
+app.register_blueprint(usuarios_bp)       # SB-102
+app.register_blueprint(departamentos_bp)  # SB-103 / SB-104
+app.register_blueprint(maquinas_bp)       # SB-103 / SB-104
+app.register_blueprint(pecas_bp)          # SB-105 / SB-106
+app.register_blueprint(fornecedores_bp)   # SB-107 / SB-108
+app.register_blueprint(prestadores_bp)    # SB-109 / SB-110
+
+
+# ---------------------------------------------------------------------------
+# 2. Antes de TODA requisicao
+# ---------------------------------------------------------------------------
+@app.before_request
+def antes_de_cada_requisicao():
+    carregar_usuario_logado()  # preenche g.usuario e g.permissoes
+    return conferir_csrf()     # recusa POST sem token (ou API sem JSON)
+
+
+# ---------------------------------------------------------------------------
+# 3. Coisas disponiveis em TODOS os templates
+# ---------------------------------------------------------------------------
+@app.context_processor
+def variaveis_dos_templates():
+    return {
+        "usuario_logado": g.get("usuario"),
+        "pode": pode,               # {% if pode('maquinas:editar') %}
+    }
+
+
+# csrf_token() vira uma funcao GLOBAL do Jinja (e nao do context_processor)
+# porque as macros de _macros.html tambem precisam dela, e macro importada
+# nao enxerga as variaveis do context_processor.
+app.jinja_env.globals["csrf_token"] = token_csrf
+
+
+@app.template_filter("moeda")
+def filtro_moeda(centavos):
+    """{{ peca.valor_centavos | moeda }}  ->  R$ 1.234,56"""
+    centavos = centavos or 0
+    texto = f"{centavos / 100:,.2f}"  # 1,234.56 (formato americano)
+    # troca , por . e . por , usando um X de "ponte"
+    texto = texto.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {texto}"
+
+
+@app.template_filter("cnpj")
+def filtro_cnpj(numeros):
+    """{{ fornecedor.cnpj | cnpj }}  ->  12.345.678/0001-95"""
+    return formatar_cnpj(numeros)
+
+
+# ---------------------------------------------------------------------------
+# 4. Pagina inicial
 # ---------------------------------------------------------------------------
 @app.route("/")
-def listar():
-    # `request.args` le o que vem na URL depois do `?`.
-    # Exemplo: /?busca=torno  ->  busca == "torno"
-    busca = request.args.get("busca", "")
-    equipamentos = database.listar_equipamentos(busca)
-    # `render_template` procura o arquivo dentro da pasta templates/.
-    # Tudo que vem depois do nome do arquivo vira variavel dentro do HTML.
-    return render_template("listar.html", equipamentos=equipamentos, busca=busca)
+@requer_login
+def inicio():
+    alertas = pecas_dados.contar_alertas() if pode("pecas:ver") else None
+    return render_template("inicio.html", alertas=alertas)
 
 
 # ---------------------------------------------------------------------------
-# CREATE - formulario vazio (GET) e gravacao (POST)
+# 5. Paginas de erro
+#
+# Na API o erro volta em JSON; nas telas, uma pagina amigavel (nunca o
+# "stack trace", que assusta o usuario e entrega detalhes para atacantes).
 # ---------------------------------------------------------------------------
-@app.route("/novo", methods=["GET", "POST"])
-def novo():
-    """Uma rota, dois comportamentos:
-
-    GET  = o navegador so quer VER o formulario.
-    POST = o usuario clicou em Salvar e esta ENVIANDO os dados.
-    """
-    if request.method == "POST":
-        # `request.form` le os campos do formulario.
-        # A chave e o `name=` do input no HTML.
-        nome = request.form["nome"].strip()
-        setor = request.form["setor"].strip()
-        status = request.form["status"]
-
-        # Validacao simples: campo obrigatorio nao pode vir vazio.
-        if not nome or not setor:
-            flash("Preencha nome e setor.", "erro")
-            # Devolve o formulario com o que o usuario ja tinha digitado.
-            return render_template(
-                "form.html",
-                titulo="Novo equipamento",
-                equipamento=request.form,
-                status_possiveis=STATUS_POSSIVEIS,
-            )
-
-        database.criar_equipamento(nome, setor, status)
-        flash("Equipamento criado.", "sucesso")
-        # Depois de gravar, SEMPRE redirecione. Isso evita que o usuario
-        # reenvie o formulario ao apertar F5. (Padrao Post/Redirect/Get.)
-        return redirect(url_for("listar"))
-
-    # Caso GET: formulario em branco.
-    return render_template(
-        "form.html",
-        titulo="Novo equipamento",
-        equipamento=None,
-        status_possiveis=STATUS_POSSIVEIS,
-    )
+MENSAGENS_DE_ERRO = {
+    400: "Requisicao invalida.",
+    403: "Seu perfil nao tem permissao para acessar esta pagina.",
+    404: "Pagina nao encontrada.",
+    405: "Metodo nao permitido para este endereco.",
+    409: "Esta operacao conflita com dados ja cadastrados.",
+    500: "Erro interno. Tente de novo em instantes.",
+}
 
 
-# ---------------------------------------------------------------------------
-# UPDATE - formulario preenchido (GET) e gravacao (POST)
-# ---------------------------------------------------------------------------
-# O `<int:id_do_equipamento>` captura um pedaco da URL e entrega
-# como argumento da funcao. /editar/7 -> id_do_equipamento == 7
-@app.route("/editar/<int:id_do_equipamento>", methods=["GET", "POST"])
-def editar(id_do_equipamento):
-    equipamento = database.buscar_equipamento(id_do_equipamento)
-
-    # Id que nao existe: avisa e volta para a lista.
-    if equipamento is None:
-        flash("Equipamento nao encontrado.", "erro")
-        return redirect(url_for("listar"))
-
-    if request.method == "POST":
-        nome = request.form["nome"].strip()
-        setor = request.form["setor"].strip()
-        status = request.form["status"]
-
-        if not nome or not setor:
-            flash("Preencha nome e setor.", "erro")
-            return render_template(
-                "form.html",
-                titulo="Editar equipamento",
-                equipamento=request.form,
-                status_possiveis=STATUS_POSSIVEIS,
-            )
-
-        database.atualizar_equipamento(id_do_equipamento, nome, setor, status)
-        flash("Equipamento atualizado.", "sucesso")
-        return redirect(url_for("listar"))
-
-    # Caso GET: formulario preenchido com os dados atuais.
-    return render_template(
-        "form.html",
-        titulo="Editar equipamento",
-        equipamento=equipamento,
-        status_possiveis=STATUS_POSSIVEIS,
-    )
+def responder_erro(codigo, descricao=None):
+    mensagem = descricao or MENSAGENS_DE_ERRO.get(codigo, "Erro.")
+    if eh_api():
+        return jsonify(erro=mensagem), codigo
+    return render_template("erros/erro.html", codigo=codigo, mensagem=mensagem), codigo
 
 
-# ---------------------------------------------------------------------------
-# DELETE - so aceita POST
-# ---------------------------------------------------------------------------
-# Por que so POST? Porque link (GET) pode ser aberto por engano, pelo
-# navegador ou por um robo. Acao que apaga dado sempre vai em formulario.
-@app.route("/apagar/<int:id_do_equipamento>", methods=["POST"])
-def apagar(id_do_equipamento):
-    database.apagar_equipamento(id_do_equipamento)
-    flash("Equipamento apagado.", "sucesso")
-    return redirect(url_for("listar"))
+@app.errorhandler(400)
+@app.errorhandler(403)
+@app.errorhandler(404)
+@app.errorhandler(405)
+def erro_http(erro):
+    # A descricao padrao do Werkzeug vem em ingles; so usamos a nossa
+    # quando a rota passou uma descricao propria no abort(..., description=).
+    padrao = type(erro).description
+    descricao = erro.description if erro.description != padrao else None
+    return responder_erro(erro.code, descricao)
+
+
+@app.errorhandler(sqlite3.IntegrityError)
+def erro_integridade(erro):
+    """Rede de seguranca: se alguma regra do banco (UNIQUE, FOREIGN KEY,
+    CHECK) recusar a gravacao e a rota nao tiver tratado antes, mostramos
+    uma mensagem amigavel em vez do erro 500."""
+    return responder_erro(409)
+
+
+@app.errorhandler(500)
+def erro_interno(erro):
+    return responder_erro(500)
 
 
 if __name__ == "__main__":
-    # Garante que a tabela existe antes de atender a primeira visita.
+    # Garante que as tabelas existem e que da para entrar no sistema
+    # (perfis, permissoes e um administrador, se ainda nao houver ninguem).
     database.criar_tabelas()
+    seed.garantir_acesso_inicial()
     # debug=True recarrega o servidor a cada alteracao de arquivo e
     # mostra o erro completo na tela. Use so no seu computador.
     app.run(debug=True)
