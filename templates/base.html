@@ -2,11 +2,23 @@
 {#
   base.html
   ---------
-  O "molde" das paginas. Cabecalho, menu, avisos e rodape ficam aqui uma
-  vez so. Cada pagina filha comeca com {% extends "base.html" %} e
-  preenche o bloco `conteudo`.
+  O "molde" das paginas. Barra lateral, barra do topo, avisos e rodape
+  ficam aqui uma vez so. Cada pagina filha comeca com
+  {% extends "base.html" %} e preenche o bloco `conteudo`.
 
-  Novidades desta versao:
+  Estrutura visual (a mesma do desenho no Figma):
+
+      +----------------+--------------------------------+
+      | barra lateral  | barra do topo                  |
+      | (menu escuro)  +--------------------------------+
+      |                | conteudo da pagina             |
+      +----------------+--------------------------------+
+
+  A casca so aparece para quem esta logado. A tela de login usa o mesmo
+  molde, mas sem menu nenhum em volta: por isso o `{% if usuario_logado %}`
+  envolve a estrutura inteira.
+
+  Continua valendo:
   - o menu so mostra o que o PERFIL da pessoa pode ver: pode('x:ver').
     Isso e so conforto visual. A seguranca de verdade esta na rota
     (@requer_permissao), porque qualquer um pode digitar a URL na mao.
@@ -22,41 +34,129 @@
   <title>{% block titulo %}TechMaint{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+{# A classe do body troca o fundo: azul na tela de login, cinza no resto. #}
+<body class="{% if usuario_logado %}tela-sistema{% else %}tela-livre{% endif %}">
 
-  <header class="cabecalho">
-    <a class="marca" href="{{ url_for('inicio') }}">TechMaint</a>
+{#
+  O checkbox abaixo abre e fecha o menu no celular. Ele fica escondido;
+  quem aparece e o <label> la na barra do topo. Como o CSS consegue ver
+  "checkbox marcado -> mostra o menu", o menu funciona sem JavaScript.
+  Precisa estar ANTES da barra lateral para o seletor ~ funcionar.
+#}
+{% if usuario_logado %}<input type="checkbox" id="abrir-menu" class="abrir-menu">{% endif %}
 
-    {% if usuario_logado %}
+  <div class="app {% if not usuario_logado %}app--livre{% endif %}">
+
+  {% if usuario_logado %}
+
+    <aside class="barra-lateral">
+      <a class="marca" href="{{ url_for('inicio') }}">
+        <span class="marca__icone" aria-hidden="true">
+          {# SVG escrito aqui dentro mesmo: e um icone so, nao vale a pena
+             um arquivo separado e mais um pedido ao servidor. #}
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="3.2"></circle>
+            <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4L16.5 7.5M7.5 16.5l-2.1 2.1"></path>
+          </svg>
+        </span>
+        <span class="marca__texto">TechMaint</span>
+      </a>
+
+      {#
+        Menu agrupado igual ao Figma: PRINCIPAL e CADASTROS. O grupo de
+        cadastros so aparece se a pessoa puder ver pelo menos um item,
+        senao sobraria um titulo solto sem nada embaixo.
+      #}
       <nav class="menu">
-        {% if pode('maquinas:ver') %}<a href="{{ url_for('maquinas.listar') }}">Maquinas</a>{% endif %}
-        {% if pode('departamentos:ver') %}<a href="{{ url_for('departamentos.listar') }}">Departamentos</a>{% endif %}
-        {% if pode('pecas:ver') %}<a href="{{ url_for('pecas.listar') }}">Pecas e estoque</a>{% endif %}
-        {% if pode('fornecedores:ver') %}<a href="{{ url_for('fornecedores.listar') }}">Fornecedores</a>{% endif %}
-        {% if pode('prestadores:ver') %}<a href="{{ url_for('prestadores.listar') }}">Prestadores</a>{% endif %}
-        {% if pode('usuarios:ver') %}<a href="{{ url_for('usuarios.listar') }}">Usuarios</a>{% endif %}
+        <p class="menu__grupo">Principal</p>
+
+        {# request.endpoint e request.blueprint dizem onde a pessoa esta
+           agora. E isso que acende o item certo do menu. #}
+        <a class="menu__item {% if request.endpoint == 'inicio' %}menu__item--ativo{% endif %}"
+           href="{{ url_for('inicio') }}">Dashboard</a>
+
+        {% if pode('usuarios:ver') or pode('maquinas:ver') or pode('pecas:ver')
+              or pode('fornecedores:ver') or pode('prestadores:ver') or pode('departamentos:ver') %}
+          <p class="menu__grupo">Cadastros</p>
+
+          {% if pode('usuarios:ver') %}
+            <a class="menu__item {% if request.blueprint == 'usuarios' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('usuarios.listar') }}">Usuarios e Perfis</a>
+          {% endif %}
+          {% if pode('maquinas:ver') %}
+            <a class="menu__item {% if request.blueprint == 'maquinas' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('maquinas.listar') }}">Equipamentos</a>
+          {% endif %}
+          {% if pode('pecas:ver') %}
+            <a class="menu__item {% if request.blueprint == 'pecas' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('pecas.listar') }}">Pecas</a>
+          {% endif %}
+          {% if pode('fornecedores:ver') %}
+            <a class="menu__item {% if request.blueprint == 'fornecedores' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('fornecedores.listar') }}">Fornecedores</a>
+          {% endif %}
+          {% if pode('prestadores:ver') %}
+            <a class="menu__item {% if request.blueprint == 'prestadores' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('prestadores.listar') }}">Prestadores de Servico</a>
+          {% endif %}
+          {% if pode('departamentos:ver') %}
+            <a class="menu__item {% if request.blueprint == 'departamentos' %}menu__item--ativo{% endif %}"
+               href="{{ url_for('departamentos.listar') }}">Departamentos</a>
+          {% endif %}
+        {% endif %}
       </nav>
 
-      <div class="sessao">
-        <span class="sessao__nome">{{ usuario_logado.nome }}</span>
-        <form method="POST" action="{{ url_for('usuarios.logout') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="botao botao--neutro botao--pequeno" type="submit">Sair</button>
-        </form>
-      </div>
+      <p class="barra-lateral__rodape">TechMaint v1.0</p>
+    </aside>
+  {% endif %}
+
+    <div class="painel">
+
+    {% if usuario_logado %}
+      <header class="barra-topo">
+        {# O label e o "botao hamburguer". No computador o CSS esconde ele. #}
+        <label class="botao-menu" for="abrir-menu" aria-label="Abrir menu">
+          <span></span><span></span><span></span>
+        </label>
+
+        <div class="sessao">
+          <span class="sessao__nome">{{ usuario_logado.nome }}</span>
+
+          {# Iniciais do nome no circulo, igual ao Figma. O aria-hidden
+             existe porque o nome ja esta escrito do lado: para quem usa
+             leitor de tela, repetir as iniciais so atrapalha. #}
+          <span class="avatar" aria-hidden="true">{{ usuario_logado.nome[:2] | upper }}</span>
+
+          <form method="POST" action="{{ url_for('usuarios.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="botao botao--neutro botao--pequeno" type="submit">Sair</button>
+          </form>
+        </div>
+      </header>
     {% endif %}
-  </header>
 
-  <main class="conteudo">
+      {#
+        O bloco `conteudo` aparece UMA vez so no arquivo. Se voce escrever
+        ele duas vezes (uma para quem esta logado e outra para quem nao
+        esta), o Jinja para tudo com "block 'conteudo' defined twice".
+        Por isso o if/else envolve so a casca, nunca o miolo.
+      #}
+      <main class="conteudo {% if not usuario_logado %}conteudo--livre{% endif %}">
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+          {% for categoria, texto in mensagens %}
+            <p class="aviso aviso--{{ categoria }}" role="status">{{ texto }}</p>
+          {% endfor %}
+        {% endwith %}
 
-    {% with mensagens = get_flashed_messages(with_categories=true) %}
-      {% for categoria, texto in mensagens %}
-        <p class="aviso aviso--{{ categoria }}" role="status">{{ texto }}</p>
-      {% endfor %}
-    {% endwith %}
+        {% block conteudo %}{% endblock %}
+      </main>
 
-    {% block conteudo %}{% endblock %}
-  </main>
+    {% if usuario_logado %}
+      <footer class="rodape">TechMaint - manutencao predial e de maquinas</footer>
+    {% endif %}
+    </div>
+  </div>
 
   {#
     Confirmacao antes de apagar/desativar. Todo <form data-confirmar="...">
@@ -72,10 +172,6 @@
       }
     });
   </script>
-
-  <footer class="rodape">
-    TechMaint - manutencao predial e de maquinas
-  </footer>
 
 </body>
 </html>
