@@ -1,0 +1,35 @@
+{#
+  recuperar_senha.html - pede o login/e-mail e (simuladamente) gera o link de redefinicao.
+  Contexto: enviado (bool), erro (opcional), valores.usuario (opcional).
+  Campo enviado: usuario (login ou e-mail), csrf_token.
+#}
+{% extends "base_auth.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Recuperar senha · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% if enviado %}
+  <div class="auth__sucesso">
+    <span class="auth__sucesso-icone">{{ icone("check-circle", 28) }}</span>
+    <h1 class="auth__titulo">Verifique suas instruções</h1>
+    <p class="auth__sub">Se o usuário existir, enviamos as instruções para redefinir a senha. Neste ambiente de demonstração o envio é <strong>simulado</strong>: o link de redefinição é gravado apenas no log do servidor.</p>
+  </div>
+{% else %}
+  <h1 class="auth__titulo">Recuperar senha</h1>
+  <p class="auth__sub">Informe seu usuário ou e-mail para receber as instruções.</p>
+  <form method="post" action="{{ url_for('auth.recuperar_senha') }}" class="auth__form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campo">
+      <label for="usuario">Usuário ou e-mail</label>
+      <div class="entrada-icone">
+        {{ icone("mail", 18) }}
+        <input type="text" id="usuario" name="usuario" value="{{ valores.usuario if valores and valores.usuario else '' }}" placeholder="Digite seu usuário ou e-mail" autocomplete="username" autofocus required
+               {% if erro %}aria-invalid="true" aria-describedby="rec-erro"{% endif %}>
+      </div>
+    </div>
+    {% if erro %}<p class="auth__erro" id="rec-erro" role="alert">{{ erro }}</p>{% endif %}
+    <button type="submit" class="btn btn--entrar btn--bloco">ENVIAR INSTRUÇÕES</button>
+  </form>
+{% endif %}
+<p class="auth__voltar"><a href="{{ url_for('auth.login') }}">{{ icone("arrow-left", 16) }} Voltar ao login</a></p>
+{% endblock %}

@@ -1,0 +1,122 @@
+/* ==========================================================================
+   tokens.css - variaveis de design (cores, fontes, espacos, sombras).
+   Tema claro = padrao em :root. Tema escuro = <html data-theme="escuro">.
+   Todo o resto do CSS usa SOMENTE estas variaveis, entao trocar de tema
+   e so trocar o valor delas.
+   ========================================================================== */
+
+/* Fontes locais (sem CDN). Se faltar o arquivo, o navegador usa o fallback. */
+@font-face { font-family: "Inter"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/inter-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 700; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/inter-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/poppins-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/poppins-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-weight: 700; font-style: normal; font-display: swap;
+  src: url("../vendor/fonts/poppins-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  color-scheme: light;
+
+  /* --- fontes --- */
+  --fonte-texto: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fonte-titulo: "Poppins", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fonte-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* --- marca --- */
+  --marinho-900: #0b1f4b;
+  --marinho-800: #13306b;
+  --primario: #1b3a6b;            /* botao primario */
+  --primario-hover: #142d55;
+  --primario-texto: #ffffff;
+  --ciano: #0ea5e9;               /* acao / destaque */
+  --ciano-forte: #0369a1;         /* ciano para TEXTO (contraste AA sobre branco) */
+  --verde: #10b981;
+  --laranja: #f59e0b;
+  --vermelho: #ef4444;
+  --coral: #c7343a;               /* avatar */
+
+  /* --- superficies --- */
+  --fundo: #eef2f8;
+  --superficie: #ffffff;
+  --superficie-2: #f6f8fc;        /* cabecalho de tabela, campos desabilitados */
+  --borda: #dde4ef;
+  --borda-forte: #c3cddd;
+  --campo-fundo: #ffffff;
+  --campo-borda: #8190a6;       /* >= 3:1 sobre o campo (WCAG 1.4.11) */
+
+  /* --- texto --- */
+  --texto: #15233f;
+  --texto-suave: #4a5a75;         /* >= 4.5:1 sobre --fundo e --superficie */
+  --texto-mudo: #5b6b82;
+  --link: #0369a1;
+  --foco: #0b6bcb;
+
+  /* --- semanticas (fundo claro + texto escuro = AA) --- */
+  --ok-fundo: #d1fae5;      --ok-texto: #047857;     --ok-ponto: #10b981;
+  --aviso-fundo: #fef3c7;   --aviso-texto: #92400e;  --aviso-ponto: #f59e0b;
+  --erro-fundo: #fee2e2;    --erro-texto: #b91c1c;   --erro-ponto: #ef4444;
+  --info-fundo: #e0f2fe;    --info-texto: #0369a1;   --info-ponto: #0ea5e9;
+  --neutro-fundo: #e8edf5;  --neutro-texto: #475569; --neutro-ponto: #94a3b8;
+  --roxo-fundo: #f3e8ff;    --roxo-texto: #7e22ce;
+  --azul-fundo: #dbeafe;    --azul-texto: #1d4ed8;
+
+  /* --- series dos graficos (validadas com validate_palette.js: azul, laranja, verde-agua, violeta) --- */
+  --viz-1: #2a78d6; --viz-2: #eb6834; --viz-3: #1baf7a; --viz-4: #6250d6;
+
+  /* --- barra lateral (igual nos dois temas) --- */
+  --sidebar-topo: #0b1f4b;
+  --sidebar-base: #13306b;
+  --sidebar-texto: #c9d6ee;
+  --sidebar-secao: #8fa4cc;
+  --sidebar-ativo-fundo: rgba(14, 165, 233, 0.20);
+  --sidebar-hover: rgba(255, 255, 255, 0.07);
+  --sidebar-largura: 264px;
+
+  /* --- forma --- */
+  --raio: 14px;
+  --raio-md: 10px;
+  --raio-sm: 8px;
+  --sombra: 0 1px 2px rgba(16, 36, 80, 0.06), 0 6px 18px rgba(16, 36, 80, 0.07);
+  --sombra-forte: 0 12px 40px rgba(11, 31, 75, 0.25);
+
+  /* --- espacos --- */
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px; --e5: 20px; --e6: 24px; --e8: 32px;
+  --alvo: 40px;                   /* altura minima de botoes/campos */
+}
+
+:root[data-theme="escuro"] {
+  color-scheme: dark;
+  --primario: #3b6fd4;
+  --primario-hover: #2f5fc0;
+  --fundo: #0a1222;
+  --superficie: #111c31;
+  --superficie-2: #16243d;
+  --borda: #24365a;
+  --borda-forte: #34497a;
+  --campo-fundo: #0d1729;
+  --campo-borda: #5a74a6;
+  --texto: #e6edf8;
+  --texto-suave: #b5c3dc;
+  --texto-mudo: #9fb0cb;
+  --link: #6cc4f5;
+  --foco: #7cc4ff;
+  --ciano-forte: #6cc4f5;
+  --ok-fundo: #0f3b2e;      --ok-texto: #6ee7b7;
+  --aviso-fundo: #45310a;   --aviso-texto: #fcd34d;
+  --erro-fundo: #4a1620;    --erro-texto: #fca5a5;
+  --info-fundo: #0b3550;    --info-texto: #7dd3fc;
+  --neutro-fundo: #243249;  --neutro-texto: #c3cfe3;
+  --roxo-fundo: #3b1d5e;    --roxo-texto: #d8b4fe;
+  --azul-fundo: #1e3a8a;    --azul-texto: #bfdbfe;
+  --viz-1: #3987e5; --viz-2: #d95926; --viz-3: #199e70; --viz-4: #9085e9;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --sidebar-topo: #081633;
+  --sidebar-base: #0e2554;
+}

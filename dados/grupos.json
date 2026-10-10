@@ -1,0 +1,62 @@
+[
+ {
+  "id": 1,
+  "nome": "Predial"
+ },
+ {
+  "id": 2,
+  "nome": "Infraestrutura"
+ },
+ {
+  "id": 3,
+  "nome": "Produção"
+ },
+ {
+  "id": 4,
+  "nome": "Ferramentaria"
+ },
+ {
+  "id": 5,
+  "nome": "Logística"
+ },
+ {
+  "id": 6,
+  "nome": "Frota"
+ },
+ {
+  "id": 7,
+  "nome": "TI"
+ },
+ {
+  "id": 8,
+  "nome": "Móveis e Utensílios"
+ },
+ {
+  "id": 9,
+  "nome": "Laboratório / Qualidade"
+ },
+ {
+  "id": 10,
+  "nome": "Serviços e Benfeitorias"
+ },
+ {
+  "id": 11,
+  "nome": "Segurança Patrimonial"
+ },
+ {
+  "id": 12,
+  "nome": "Meio Ambiente"
+ },
+ {
+  "id": 13,
+  "nome": "Utilidades Industriais"
+ },
+ {
+  "id": 14,
+  "nome": "Metrologia"
+ },
+ {
+  "id": 15,
+  "nome": "Automação Industrial"
+ }
+]

@@ -1,0 +1,84 @@
+{#
+  os_lista.html - lista de ordens de servico em cartoes (Figma 17).
+  Contexto: itens, resumo (aberta, andamento, concluida, cancelada), pedidos_sem_os, status, tecnico_id, busca, tecnicos.
+  Item: id, numero (OS-10234), status, id_pedido, equipamento, tecnico, data_abertura_fmt, prioridade.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Ordens de Serviço · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set base = url_for('ordens.listar') %}
+{% set r = resumo or {} %}
+{% set qtd = total if total is defined else (itens|length) %}
+{% set status_lista = status_opcoes or ['Aberta', 'Em andamento', 'Concluída', 'Cancelada'] %}
+{% set pode_nova = pode('os.gerir') if pode is defined else true %}
+{% call m.cab_pagina("Ordens de Serviço", qtd ~ (" ordem registrada" if qtd == 1 else " ordens registradas")) %}
+  {% if pode_nova %}<a class="btn btn--primario" href="{{ url_for('ordens.nova') }}">{{ icone("plus", 16) }} Nova OS</a>{% endif %}
+{% endcall %}
+
+<section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+  <div class="cartao__cab">
+    <h2 class="cartao__titulo" id="titulo-lista">Lista de Ordens</h2>
+    <ul class="pilulas" aria-label="Resumo por status" role="list">
+      <li class="badge badge--info">Aberta: {{ r.aberta or 0 }}</li>
+      <li class="badge badge--aviso">Em Andamento: {{ r.andamento or 0 }}</li>
+      <li class="badge badge--ok">Concluída: {{ r.concluida or 0 }}</li>
+      {% if r.cancelada %}<li class="badge badge--neutro">Cancelada: {{ r.cancelada }}</li>{% endif %}
+    </ul>
+  </div>
+
+  {% if pedidos_sem_os %}
+    <p class="aviso aviso--aviso faixa-aviso" role="status">{{ icone("alert", 18) }}<span class="aviso__texto">{{ pedidos_sem_os }} pedido(s) aguardando abertura de OS. <a href="{{ url_for('pedidos.listar') }}?status=Aberto">Ver pedidos abertos</a></span></p>
+  {% endif %}
+
+  <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+    <div class="campo-busca">
+      <label class="sr-only" for="busca">Buscar ordem</label>
+      <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar nº da OS, equipamento ou técnico…" data-filtrar-lista="#lista-os">
+    </div>
+    <div>
+      <label class="sr-only" for="f-status">Status</label>
+      <select id="f-status" name="status" data-auto-enviar>
+        <option value="">Todos status</option>
+        {{ m.opcoes_html(status_lista, status) }}
+      </select>
+    </div>
+    {% if tecnicos %}
+    <div>
+      <label class="sr-only" for="f-tecnico">Técnico</label>
+      <select id="f-tecnico" name="tecnico_id" data-auto-enviar>
+        <option value="">Todos técnicos</option>
+        {{ m.opcoes_html(tecnicos, tecnico_id) }}
+      </select>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+  </form>
+
+  {% if itens %}
+  <ul class="lista-os" id="lista-os" role="list">
+    {% for o in itens %}
+    <li class="lista-os__item">
+      <a class="lista-os__link" href="{{ base }}/{{ o.id }}">
+        <span class="lista-os__topo">
+          <span class="lista-os__numero">{{ o.numero or ('OS-' ~ o.id) }}</span>
+          <span class="fila">{% if o.atrasada %}<span class="badge badge--erro" title="Aberta há {{ o.dias_aberta }} dia(s)">Atrasada</span>{% endif %}{{ m.badge(o.status) }}</span>
+        </span>
+        <span class="lista-os__linha">{% if o.id_pedido %}{{ o.pedido_numero or ('#' ~ o.id_pedido) }} | {% endif %}{{ o.equipamento or 'Sem pedido vinculado' }}</span>
+        <span class="lista-os__linha lista-os__linha--mudo">{{ o.tecnico or o.responsavel or '—' }} · {{ o.data_abertura_fmt }}</span>
+        {% if o.prioridade %}<span class="lista-os__prio lista-os__prio--{{ o.prioridade|lower }}">Prioridade: {{ o.prioridade }}</span>{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ m.contagem(itens|length, "ordem(ns) listada(s)") }}
+    {{ m.paginacao_auto() }}
+  {% else %}
+    {% call m.estado_vazio("Nenhuma ordem de serviço encontrada", "Ajuste os filtros ou abra uma nova OS.", "clipboard-check") %}
+      {% if pode_nova %}<a class="btn btn--primario" href="{{ url_for('ordens.nova') }}">{{ icone("plus", 16) }} Nova OS</a>{% endif %}
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

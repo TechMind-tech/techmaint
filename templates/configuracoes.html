@@ -1,0 +1,102 @@
+{#
+  configuracoes.html - perfil, senha, idioma e tema (Manual/SPEC secao 4).
+  Contexto: perfil (nome, email), idiomas, temas, valores, erros, tema (atual).
+  Cada bloco e um formulario proprio; o campo oculto `acao` diz qual foi enviado: perfil | senha | preferencias.
+  Campos: perfil -> nome, email | senha -> senha_atual, nova_senha, confirmar_senha | preferencias -> idioma, tema.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Configurações · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set f = dict(perfil or {}, **(valores or {})) %}
+{% set idiomas_lista = idiomas or [{'valor': 'pt-BR', 'rotulo': 'Português (Brasil)', 'ativo': true}, {'valor': 'en', 'rotulo': 'English', 'ativo': false}, {'valor': 'es', 'rotulo': 'Español', 'ativo': false}] %}
+{% set temas_lista = temas or ['claro', 'escuro'] %}
+{% set idioma_atual = f.idioma if f.idioma else 'pt-BR' %}
+{% set tema_sel = f.tema if f.tema else (tema_atual if tema_atual is defined and tema_atual else (tema or 'claro')) %}
+
+{% call m.cab_pagina("Configurações", "Seu perfil, senha e preferências") %}{% endcall %}
+
+<div class="grade grade--2 grade--alinha-topo">
+  <section class="cartao" aria-labelledby="t-perfil">
+    <h2 class="cartao__titulo cartao__titulo--form" id="t-perfil">{{ icone("user", 16) }} Meu perfil</h2>
+    <form method="post" action="{{ url_for('configuracoes.pagina') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="perfil">
+      <div class="form-grade form-grade--1">
+        {{ m.campo("nome", "Nome", f, erros, obrigatorio=true, prefixo="perfil-", maxlength=120, autocomplete="name") }}
+        {{ m.campo("email", "E-mail", f, erros, tipo="email", prefixo="perfil-", maxlength=150, autocomplete="email", opcional=true) }}
+        <div class="campo">
+          <label for="perfil-login">Login</label>
+          <input type="text" id="perfil-login" class="mono" value="{{ (perfil.login if perfil and perfil.login else (usuario_atual.login if usuario_atual else '')) }}" readonly>
+        </div>
+        <div class="campo">
+          <label for="perfil-perfil">Perfil de acesso</label>
+          <input type="text" id="perfil-perfil" value="{{ (perfil.perfil if perfil and perfil.perfil else (usuario_atual.perfil if usuario_atual else '')) }}" readonly>
+        </div>
+      </div>
+      <div class="btn-grupo form-acoes"><button type="submit" class="btn btn--primario">{{ icone("save", 16) }} Salvar perfil</button></div>
+    </form>
+  </section>
+
+  <section class="cartao" aria-labelledby="t-senha">
+    <h2 class="cartao__titulo cartao__titulo--form" id="t-senha">{{ icone("lock", 16) }} Trocar senha</h2>
+    <form method="post" action="{{ url_for('configuracoes.pagina') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="senha">
+      <div class="form-grade form-grade--1">
+        {{ m.campo("senha_atual", "Senha atual", {}, erros, tipo="password", obrigatorio=true, autocomplete="current-password") }}
+        {{ m.campo("nova_senha", "Nova senha", {}, erros, tipo="password", obrigatorio=true, minlength=8, autocomplete="new-password", ajuda="Mínimo de 8 caracteres.") }}
+        {{ m.campo("confirmar_senha", "Confirmar nova senha", {}, erros, tipo="password", obrigatorio=true, minlength=8, autocomplete="new-password") }}
+      </div>
+      <div class="btn-grupo form-acoes"><button type="submit" class="btn btn--primario">{{ icone("key", 16) }} Alterar senha</button></div>
+    </form>
+  </section>
+
+  <section class="cartao grade--span" aria-labelledby="t-pref">
+    <h2 class="cartao__titulo cartao__titulo--form" id="t-pref">{{ icone("sliders", 16) }} Preferências</h2>
+    <form method="post" action="{{ url_for('configuracoes.pagina') }}" novalidate data-form-preferencias>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="acao" value="preferencias">
+      <div class="grade grade--2">
+        <fieldset class="campo">
+          <legend>{{ icone("languages", 15) }} Idioma</legend>
+          <div class="opcoes opcoes--coluna">
+            {% for i in idiomas_lista %}
+              {% set v = i.valor if i is mapping else i %}
+              {% set r = (i.rotulo if i is mapping and i.rotulo else v)|replace(' (em breve)', '')|replace(' (en breve)', '') %}
+              {% set habilitado = (i.habilitado if i is mapping and i.habilitado is defined else (i.ativo if i is mapping and i.ativo is defined else v == 'pt-BR')) %}
+              <label class="marcador" for="idioma-{{ v }}">
+                <input type="radio" id="idioma-{{ v }}" name="idioma" value="{{ v }}"{{ ' checked' if v == idioma_atual }}{{ '' if habilitado else ' disabled' }}>
+                {{ r }}{% if not habilitado %} <span class="badge badge--neutro">em breve</span>{% endif %}
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <fieldset class="campo">
+          <legend>{{ icone("sun", 15) }} Tema</legend>
+          <div class="opcoes opcoes--coluna">
+            {% for t in temas_lista %}
+              {% set v = t.valor if t is mapping else t %}
+              <label class="marcador" for="tema-{{ v }}">
+                <input type="radio" id="tema-{{ v }}" name="tema" value="{{ v }}"{{ ' checked' if v == tema_sel }} data-tema-opcao>
+                {{ icone('moon' if v == 'escuro' else 'sun', 16) }} {{ 'Escuro' if v == 'escuro' else 'Claro' }}
+              </label>
+            {% endfor %}
+          </div>
+          <p class="campo__ajuda">O tema é aplicado na hora para você conferir; clique em Salvar para mantê-lo.</p>
+        </fieldset>
+      </div>
+      <div class="btn-grupo form-acoes"><button type="submit" class="btn btn--primario">{{ icone("save", 16) }} Salvar preferências</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="mt">
+  <form method="post" action="{{ url_for('auth.logout') }}" class="em-linha">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn--perigo">{{ icone("log-out", 16) }} Sair</button>
+  </form>
+</div>
+{% endblock %}

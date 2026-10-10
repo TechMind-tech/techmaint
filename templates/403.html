@@ -1,0 +1,16 @@
+{# 403.html - sem permissao. Usa a moldura interna se houver usuario logado, senao a de visitante. #}
+{% extends ('base.html' if usuario_atual else 'base_auth.html') %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Acesso negado · TechMaint{% endblock %}
+{% block conteudo %}
+  <div class="pagina-erro">
+    <span class="pagina-erro__icone pagina-erro__icone--aviso">{{ icone("lock", 34) }}</span>
+    <p class="pagina-erro__codigo">403</p>
+    <h1>Acesso negado</h1>
+    <p class="pagina-erro__texto">Você não tem permissão para abrir esta página. Se acha que isso é um engano, fale com o administrador do sistema.</p>
+    <div class="btn-grupo btn-grupo--centro">
+      {% if usuario_atual %}<a class="btn btn--primario" href="{{ url_for('painel.menu_principal') }}">{{ icone("home", 16) }} Ir para o menu principal</a>
+      {% else %}<a class="btn btn--primario" href="{{ url_for('auth.login') }}">Ir para o login</a>{% endif %}
+    </div>
+  </div>
+{% endblock %}

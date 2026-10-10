@@ -1,0 +1,66 @@
+{#
+  departamentos.html - cadastro + tabela (Figma 15, Manual 1.5).
+  Contexto: itens, item, usuarios (responsaveis), erros, valores.
+  Item: id, nome, responsavel_id, responsavel_nome (ou responsavel).
+  Campos do form: nome, responsavel_id.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Departamentos · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('departamentos.editar') if pode is defined else true %}
+{% set f = valores or item or {} %}
+{% set editando = true if item else false %}
+{% set base = url_for('departamentos.listar') %}
+{% call m.cab_pagina("Cadastro de Departamentos", "Setores e departamentos da organização") %}{% endcall %}
+
+<div class="{{ 'duas-colunas' if pode_edit else 'pilha' }}">
+  {% if pode_edit %}
+  <section class="cartao" aria-labelledby="titulo-form">
+    <h2 class="cartao__titulo cartao__titulo--form" id="titulo-form">{{ icone("plus" if not editando else "pencil", 16) }} {{ "Editar departamento" if editando else "Novo Departamento" }}</h2>
+    {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+    <form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if editando else base }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grade form-grade--1">
+        {{ m.campo("nome", "Nome do Departamento", f, erros, obrigatorio=true, placeholder="Ex: Produção", maxlength=80) }}
+        {{ m.selecao("responsavel_id", "Responsável", usuarios, f, erros, vazio="Selecione o responsável", opcional=true) }}
+      </div>
+      <div class="btn-grupo form-acoes">
+        <button type="submit" class="btn btn--primario btn--grande">{{ icone("plus" if not editando else "save", 16) }} {{ "Salvar alterações" if editando else "Cadastrar" }}</button>
+        {% if editando %}<a class="btn btn--secundario" href="{{ base }}">Cancelar</a>{% endif %}
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+    <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Departamentos Cadastrados</h2></div>
+    {% if itens %}
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de departamentos">
+      <table class="tabela">
+        <thead><tr><th>ID</th><th>Nome</th><th>Responsável</th>{% if pode_edit %}<th class="col-acoes">Ações</th>{% endif %}</tr></thead>
+        <tbody>
+        {% for d in itens %}
+          <tr>
+            <td class="mudo">{{ d.id }}</td>
+            <td class="forte">{{ d.nome }}</td>
+            <td>{{ d.responsavel_nome or d.responsavel or '—' }}</td>
+            {% if pode_edit %}<td class="col-acoes">
+              <a class="btn btn--suave btn--sm" href="{{ base }}/{{ d.id }}/editar" aria-label="Editar {{ d.nome }}">Editar</a>
+              {{ m.excluir(base ~ '/' ~ d.id ~ '/excluir', 'Excluir o departamento "' ~ d.nome ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ d.nome) }}
+            </td>{% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ m.contagem(itens|length, "departamento(s)") }}
+    {{ m.paginacao_auto() }}
+    {% else %}
+      {{ m.estado_vazio("Nenhum departamento cadastrado", "Cadastre o primeiro departamento no formulário.", "building") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

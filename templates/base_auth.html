@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+{#
+  base_auth.html - moldura das telas SEM login (entrar, recuperar senha, erros de visitante).
+  Fundo em degrade azul com um cartao branco centralizado (Figma 01-login).
+  Blocos: `titulo`, `conteudo`, `scripts`.
+#}
+{% from "_icones.html" import icone %}
+{% set tema_ativo = tema if tema in ('claro', 'escuro') else 'claro' %}
+<html lang="pt-BR" data-theme="{{ tema_ativo }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}TechMaint{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/componentes.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/paginas.css') }}">
+  <script src="{{ url_for('static', filename='js/pre.js') }}"></script>
+</head>
+<body class="auth">
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+  <div class="auth__palco">
+    {# ilustracao simples em SVG (so aparece em telas largas) #}
+    <aside class="auth__arte" aria-hidden="true">
+      <svg viewBox="0 0 320 240" width="100%" role="presentation" focusable="false">
+        <rect x="40" y="70" width="240" height="140" rx="12" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
+        <rect x="56" y="86" width="208" height="12" rx="6" fill="rgba(255,255,255,.28)"/>
+        <rect x="56" y="112" width="60" height="78" rx="8" fill="rgba(56,189,248,.55)"/>
+        <rect x="128" y="140" width="60" height="50" rx="8" fill="rgba(52,211,153,.55)"/>
+        <rect x="200" y="124" width="64" height="66" rx="8" fill="rgba(251,191,36,.55)"/>
+        <g fill="none" stroke="#7dd3fc" stroke-width="5" stroke-linecap="round">
+          <circle cx="238" cy="52" r="22"/><circle cx="238" cy="52" r="8"/>
+          <path d="M238 22v8M238 74v8M208 52h8M260 52h8M217 31l6 6M253 67l6 6M259 31l-6 6M223 67l-6 6"/>
+        </g>
+      </svg>
+      <p class="auth__arte-titulo">Gestão de manutenção</p>
+      <p class="auth__arte-sub">Pedidos, ordens de serviço, estoque e indicadores em um só lugar.</p>
+    </aside>
+
+    <main class="auth__conteudo" id="conteudo">
+      <div class="auth__cartao">
+        <div class="auth__marca">
+          <span class="auth__logo">{{ icone("settings", 26) }}</span>
+          {% block marca %}<span class="auth__nome">TechMaint</span>{% endblock %}
+        </div>
+        <div class="avisos" role="status" aria-live="polite" data-avisos>
+          {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% for categoria, texto in mensagens %}
+              {% set cat = categoria if categoria in ('sucesso', 'erro', 'aviso', 'info') else 'info' %}
+              <div class="aviso aviso--{{ cat }}"{% if cat == 'erro' %} role="alert"{% endif %}>
+                {{ icone({'sucesso': 'check-circle', 'erro': 'alert-circle', 'aviso': 'alert', 'info': 'info'}[cat], 18) }}
+                <p class="aviso__texto">{{ texto }}</p>
+              </div>
+            {% endfor %}
+          {% endwith %}
+        </div>
+        {% block conteudo %}{% endblock %}
+        <p class="auth__rodape">Desenvolvido em Python · TechMaint v1.0</p>
+      </div>
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

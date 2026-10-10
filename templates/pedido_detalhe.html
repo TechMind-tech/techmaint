@@ -1,0 +1,75 @@
+{#
+  pedido_detalhe.html - consulta de um pedido (Manual 2.1: Consultar Pedido, Editar, Cancelar, Visualizar OS).
+  Contexto: pedido, os (ou None), historico.
+  pedido: id, equipamento, departamento, solicitante, descricao_problema, prioridade, status, data_solicitacao_fmt, aprovado_por.
+  os: id, numero (OS-10234), status.     historico: [{data_fmt, usuario, acao, detalhe}]
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Pedido {{ pedido.numero or ('#' ~ pedido.id) }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set base = url_for('pedidos.listar') %}
+{% set perfil = usuario_atual.perfil if usuario_atual else '' %}
+{% set aberto = pedido.status == 'Aberto' %}
+{% set numero = pedido.numero or ('#' ~ pedido.id) %}
+{# flags do backend; sem elas (ex.: harness), cai para a regra por perfil #}
+{% set pode_ed = pode_editar if pode_editar is defined else aberto %}
+{% set pode_ca = pode_cancelar if pode_cancelar is defined else (aberto and not os and perfil in ('Gestor', 'Administrador')) %}
+{% set pode_ap = pode_aprovar if pode_aprovar is defined else (aberto and not pedido.aprovado_por and perfil in ('Gestor', 'Administrador')) %}
+{% set pode_os = pode_abrir_os if pode_abrir_os is defined else (aberto and not os and perfil in ('Administrador', 'Técnico')) %}
+
+{% call m.cab_pagina("Pedido " ~ numero, pedido.equipamento) %}
+  <a class="btn btn--secundario" href="{{ base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+{% endcall %}
+
+<section class="cartao" aria-labelledby="titulo-dados">
+  <div class="cartao__cab">
+    <h2 class="cartao__titulo" id="titulo-dados">Dados do pedido</h2>
+    <div class="fila">{{ m.badge(pedido.prioridade) }} {{ m.badge(pedido.status) }}</div>
+  </div>
+  <dl class="def-lista">
+    <div><dt>Equipamento</dt><dd>{{ pedido.equipamento }}</dd></div>
+    <div><dt>Departamento solicitante</dt><dd>{{ pedido.departamento or '—' }}</dd></div>
+    <div><dt>Solicitante</dt><dd>{{ pedido.solicitante or '—' }}</dd></div>
+    <div><dt>Data da solicitação</dt><dd>{{ pedido.data_solicitacao_fmt or '—' }}</dd></div>
+    <div><dt>Aprovado por</dt><dd>{{ pedido.aprovado_por or 'Aguardando aprovação' }}{% if pedido.data_aprovacao_fmt %} <span class="mudo">em {{ pedido.data_aprovacao_fmt }}</span>{% endif %}</dd></div>
+    <div><dt>Ordem de serviço</dt><dd>{% if os %}<a href="{{ url_for('ordens.listar') }}/{{ os.id }}">{{ os.numero or ('OS-' ~ os.id) }}</a> {{ m.badge(os.status) }}{% else %}Nenhuma{% endif %}</dd></div>
+    <div class="largo"><dt>Descrição do problema</dt><dd class="texto-livre">{{ pedido.descricao_problema }}</dd></div>
+  </dl>
+
+  <div class="btn-grupo form-acoes">
+    {% if os %}
+      <a class="btn btn--primario" href="{{ url_for('ordens.listar') }}/{{ os.id }}">{{ icone("clipboard-check", 16) }} Visualizar Ordem de Serviço</a>
+    {% elif pode_os %}
+      <a class="btn btn--primario" href="{{ url_for('ordens.nova') }}?pedido_id={{ pedido.id }}">{{ icone("plus", 16) }} Abrir OS</a>
+    {% endif %}
+    {% if pode_ed %}
+      <a class="btn btn--secundario" href="{{ base }}/{{ pedido.id }}/editar">{{ icone("pencil", 16) }} Editar Pedido</a>
+    {% endif %}
+    {% if pode_ap %}
+      {{ m.acao_post(base ~ '/' ~ pedido.id ~ '/aprovar', 'Aprovar', classe='btn btn--verde', icone_nome='check') }}
+    {% endif %}
+    {% if pode_ca %}
+      {{ m.acao_post(base ~ '/' ~ pedido.id ~ '/cancelar', 'Cancelar Pedido', classe='btn btn--perigo', confirmar='Cancelar o pedido ' ~ numero ~ '? Ele deixará de aparecer como aberto.', titulo='Cancelar pedido', botao='Cancelar pedido') }}
+    {% endif %}
+  </div>
+</section>
+
+<section class="cartao cartao--sem-pad mt" aria-labelledby="titulo-hist">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-hist">Histórico</h2></div>
+  {% if historico %}
+    <ol class="linha-tempo">
+      {% for h in historico %}
+        <li>
+          <span class="linha-tempo__quando">{{ h.data_fmt or h.data }}</span>
+          <span class="linha-tempo__texto"><strong>{{ h.acao }}</strong>{% if h.usuario %} · {{ h.usuario }}{% endif %}{% if h.detalhe %}<span class="sub">{{ h.detalhe }}</span>{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    {{ m.estado_vazio("Sem histórico", "Ainda não há alterações registradas para este pedido.", "history") }}
+  {% endif %}
+</section>
+{% endblock %}

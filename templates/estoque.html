@@ -1,0 +1,139 @@
+{#
+  estoque.html - movimentacao de estoque (Figma 19, Manual 2.3).
+  Contexto: resumo (total_entradas_fmt, total_saidas_fmt, qtd_movimentos), itens (historico), pecas, tipos_documento,
+            valores, erros, tipo, busca, periodo.
+  itens: id, data_fmt, tipo, peca (descricao do item), quantidade, valor_unitario_fmt, valor_total_fmt,
+         documento_origem, numero_documento, usuario.
+  Campos do form (POST /estoque): tipo, id_peca, quantidade, valor_unitario, documento_origem, numero_documento, observacao.
+  O "Codigo do item" e so um auxilio de digitacao (JS): escolhe a peca correspondente; nao e enviado.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Movimentação de Estoque · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('estoque.editar') if pode is defined else true %}
+{% set f = valores or {} %}
+{% set base = url_for('estoque.listar') %}
+{% set r = resumo or {} %}
+{% set tipo_atual = f.tipo if f.tipo else 'Entrada' %}
+
+{% call m.cab_pagina("Movimentação de Estoque", "Entradas e saídas de peças e materiais") %}{% endcall %}
+
+<div class="grade grade--3 mb" role="group" aria-label="Resumo do mês">
+  <div class="contador contador--verde resumo-mov">
+    <span class="resumo-mov__icone" aria-hidden="true">{{ icone("arrow-down-to-line", 22) }}</span>
+    <span class="contador__rotulo"><b class="resumo-mov__valor">{{ r.total_entradas_fmt or 'R$ 0,00' }}</b> Total Entradas (mês)</span>
+  </div>
+  <div class="contador contador--vermelho resumo-mov">
+    <span class="resumo-mov__icone" aria-hidden="true">{{ icone("arrow-up-from-line", 22) }}</span>
+    <span class="contador__rotulo"><b class="resumo-mov__valor">{{ r.total_saidas_fmt or 'R$ 0,00' }}</b> Total Saídas (mês)</span>
+  </div>
+  <div class="contador contador--ciano resumo-mov">
+    <span class="resumo-mov__icone" aria-hidden="true">{{ icone("bar-chart", 22) }}</span>
+    <span class="contador__rotulo"><b class="resumo-mov__valor">{{ r.qtd_movimentos or 0 }}</b> Movimentações</span>
+  </div>
+</div>
+
+<div class="pilha">
+  {% if pode_edit %}
+  <section class="cartao" aria-labelledby="titulo-form">
+    <h2 class="cartao__titulo cartao__titulo--form" id="titulo-form">Registrar Movimento</h2>
+    {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+    <form method="post" action="{{ base }}" id="form-mov" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grade form-grade--auto">
+        <fieldset class="campo campo--largo">
+          <legend>Tipo de Movimento</legend>
+          <div class="opcoes">
+            <label class="marcador mov-entrada" for="tipo-entrada"><input type="radio" id="tipo-entrada" name="tipo" value="Entrada"{{ ' checked' if tipo_atual == 'Entrada' }}> Entrada</label>
+            <label class="marcador mov-saida" for="tipo-saida"><input type="radio" id="tipo-saida" name="tipo" value="Saída"{{ ' checked' if tipo_atual == 'Saída' }}> Saída</label>
+          </div>
+          {{ m.msg_erro(erros, 'tipo', 'tipo') }}
+        </fieldset>
+
+        <div class="campo campo--largo">
+          <label for="codigo_item">Código do Item <span class="opcional">(ajuda a localizar)</span></label>
+          <input type="text" id="codigo_item" class="mono" placeholder="Ex: ROL-6204" autocomplete="off" data-codigo-item>
+        </div>
+
+        <div class="campo campo--largo">
+          <label for="id_peca">Descrição<span class="obrig" aria-hidden="true">*</span></label>
+          <select id="id_peca" name="id_peca" required aria-required="true" data-peca-select{% if erros and erros.id_peca %} aria-invalid="true" aria-describedby="id_peca-erro"{% endif %}>
+            <option value="">Selecione a peça</option>
+            {% for p in (pecas or []) %}
+              <option value="{{ p.id }}" data-codigo="{{ p.codigo or '' }}" data-valor="{{ p.valor_unitario if p.valor_unitario is defined else '' }}"{{ ' selected' if f.id_peca|string == p.id|string }}>{{ p.nome }}{% if p.qtde_estoque is defined %} (estoque: {{ p.qtde_fmt if p.qtde_fmt is defined else p.qtde_estoque }}){% endif %}</option>
+            {% endfor %}
+          </select>
+          {{ m.msg_erro(erros, 'id_peca', 'id_peca') }}
+        </div>
+
+        {{ m.campo("quantidade", "Quantidade", {'quantidade': f.quantidade if f.quantidade else 1}, erros, tipo="number", obrigatorio=true, min=1, step=1, inputmode="numeric") }}
+        {{ m.campo("valor_unitario", "Valor Unit. (R$)", {'valor_unitario': f.valor_unitario if f.valor_unitario else 0}, erros, tipo="number", obrigatorio=true, min=0, step="0.01", inputmode="decimal") }}
+        {{ m.selecao("documento_origem", "Tipo de Documento", tipos_documento, f, erros, obrigatorio=true, vazio=none) }}
+        {{ m.campo("numero_documento", "Nº Documento", f, erros, mono=true, placeholder="NF-000000", maxlength=40) }}
+        {{ m.campo("observacao", "Observação", f, erros, largo=true, maxlength=200, opcional=true) }}
+      </div>
+      <div class="btn-grupo form-acoes">
+        <button type="submit" class="btn btn--primario btn--grande btn--cresce">Registrar Movimento</button>
+        <a class="btn btn--secundario" href="{{ base }}" data-limpar-form="#form-mov">Limpar</a>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+    <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Histórico de movimentações</h2></div>
+    <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+      <div class="campo-busca">
+        <label class="sr-only" for="busca">Buscar movimentação</label>
+        <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar item ou documento…" data-filtrar-tabela="#tabela-mov">
+      </div>
+      <div>
+        <label class="sr-only" for="f-tipo">Tipo</label>
+        <select id="f-tipo" name="tipo" data-auto-enviar>
+          <option value="">Entradas e saídas</option>
+          {{ m.opcoes_html(['Entrada', 'Saída'], tipo) }}
+        </select>
+      </div>
+      <div>
+        <label class="sr-only" for="f-periodo">Período</label>
+        <select id="f-periodo" name="periodo" data-auto-enviar>
+          <option value="">Todo o período</option>
+          {{ m.opcoes_html(periodos or [('7d', 'Últimos 7 dias'), ('30d', 'Últimos 30 dias'), ('6m', 'Últimos 6 meses'), ('12m', 'Último ano')], periodo) }}
+        </select>
+      </div>
+      <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+    </form>
+
+    {% if itens %}
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Histórico de movimentações de estoque">
+      <table class="tabela" id="tabela-mov">
+        <thead><tr><th>Data</th><th>Tipo</th><th>Item</th><th class="col-num">Qtd.</th><th class="col-num">Valor unit.</th><th class="col-num">Total</th><th>Documento</th>{% if pode_edit %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+        <tbody>
+        {% for i in itens %}
+          <tr>
+            <td class="nowrap">{{ i.data_fmt }}</td>
+            <td>{{ m.badge(i.tipo) }}</td>
+            <td class="forte celula-quebra">{{ i.peca or i.item or i.descricao }}</td>
+            <td class="col-num">{{ i.quantidade_fmt if i.quantidade_fmt is defined else i.quantidade }}</td>
+            <td class="col-num nowrap">{{ i.valor_unitario_fmt }}</td>
+            <td class="col-num nowrap forte">{{ i.valor_total_fmt }}</td>
+            <td>{{ i.documento_origem or '—' }}{% if i.numero_documento %}<span class="sub mono">{{ i.numero_documento }}</span>{% endif %}</td>
+            {% if pode_edit %}<td class="col-acoes">
+              {% if i.pode_excluir is not defined or i.pode_excluir %}{{ m.excluir(base ~ '/' ~ i.id ~ '/excluir', 'Excluir este movimento? O saldo do estoque será estornado.', aria='Excluir movimento de ' ~ (i.peca or i.item or i.descricao), titulo='Excluir movimento') }}{% elif i.id_os %}<span class="mudo" title="Gerado por uma OS: só pode ser desfeito pela própria OS">Via OS</span>{% endif %}
+            </td>{% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ m.contagem(itens|length, "movimentação(ões)") }}
+    {{ m.paginacao_auto() }}
+    {% else %}
+      {{ m.estado_vazio("Nenhuma movimentação encontrada", "Registre uma entrada ou saída ao lado, ou ajuste os filtros.", "boxes") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
