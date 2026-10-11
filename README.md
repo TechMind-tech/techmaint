@@ -217,3 +217,21 @@ O trabalho está na branch **`feature/sistema-completo`**. Ciclo do dia a dia: e
 `git add <arquivos>`, `git commit -m "adiciona busca por setor"` (frase curta, no presente) e `git push`.
 Um commit por assunto fica muito mais fácil de entender depois. O arquivo `techmaint.db` **não** vai para
 o Git (está no `.gitignore`): cada pessoa tem o seu.
+
+---
+
+## Publicar no Railway
+
+O projeto já traz `railway.json`, `railway_start.py` e `gunicorn` no `requirements.txt`.
+
+1. Crie um **Volume** no serviço, montado em `/data` (é onde o SQLite fica guardado).
+2. Defina as variáveis do serviço:
+   - `TECHMAINT_DB=/data/techmaint.db`
+   - `TECHMAINT_SECRET_KEY=<texto aleatório longo>`
+   - `TECHMAINT_SENHA_ADMIN=<senha forte, mínimo 10 caracteres>`
+   - `TECHMAINT_COOKIE_SEGURO=1`
+3. Faça o deploy da branch (GitHub) e gere o domínio público em *Settings → Networking*.
+
+No primeiro boot o banco é criado com os dados de demonstração e as senhas de demonstração
+são **substituídas**: `admin` usa `TECHMAINT_SENHA_ADMIN` e os outros usuários recebem senhas
+aleatórias (redefina pela tela *Usuários e Perfis*).
