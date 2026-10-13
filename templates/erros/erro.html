@@ -1,0 +1,17 @@
+{#
+  erros/erro.html
+  ---------------
+  Pagina amigavel para qualquer erro (403, 404, 500...). Nunca mostramos
+  o "stack trace" para o usuario: assusta quem usa e ajuda quem ataca.
+#}
+{% extends "base.html" %}
+
+{% block titulo %}Erro {{ codigo }} - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <div class="vazio">
+    <p class="erro-codigo">{{ codigo }}</p>
+    <p>{{ mensagem }}</p>
+    <a class="botao" href="{{ url_for('inicio') }}">Voltar ao inicio</a>
+  </div>
+{% endblock %}

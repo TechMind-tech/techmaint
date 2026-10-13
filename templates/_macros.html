@@ -1,0 +1,62 @@
+{#
+  _macros.html
+  ------------
+  Macro = uma "funcao" do Jinja: um pedaco de HTML que recebe parametros.
+  Todos os formularios tinham o mesmo trio label + input + mensagem de erro;
+  em vez de repetir 40 vezes, ele mora aqui.
+
+  Como usar num template:
+
+      {% from "_macros.html" import campo, csrf %}
+      <form method="POST">
+        {{ csrf() }}
+        {{ campo("nome", "Nome", item, erros, obrigatorio=true) }}
+      </form>
+
+  `item`  = o registro que esta sendo editado (ou o que a pessoa digitou,
+            ou None quando e um cadastro novo).
+  `erros` = dicionario {campo: mensagem} que veio da Validacao.
+#}
+
+
+{# Campo escondido com o token CSRF. TODO formulario POST precisa dele. #}
+{% macro csrf() -%}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+
+{# Le o valor do campo dentro de `item`, seja ele qual for. #}
+{% macro valor_de(item, nome) -%}
+  {%- if item and item[nome] is defined and item[nome] is not none -%}{{ item[nome] }}{%- endif -%}
+{%- endmacro %}
+
+
+{% macro campo(nome, rotulo, item, erros, tipo="text", obrigatorio=false, ajuda="", extra="") %}
+  <label for="{{ nome }}">{{ rotulo }}{% if obrigatorio %} <span class="obrigatorio" aria-hidden="true">*</span>{% endif %}</label>
+  <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}"
+         value="{{ valor_de(item, nome) }}"
+         {% if obrigatorio %}required{% endif %}
+         {% if erros[nome] %}class="invalido" aria-invalid="true" aria-describedby="erro-{{ nome }}"{% endif %}
+         {{ extra }}>
+  {% if ajuda %}<small class="ajuda">{{ ajuda }}</small>{% endif %}
+  {% if erros[nome] %}<small class="erro-campo" id="erro-{{ nome }}">{{ erros[nome] }}</small>{% endif %}
+{% endmacro %}
+
+
+{#
+  <select> montado a partir de uma lista do banco.
+  `opcoes` = lista de pares (valor, texto).
+#}
+{% macro escolha(nome, rotulo, item, erros, opcoes, obrigatorio=false, vazio="Selecione...") %}
+  {% set atual = valor_de(item, nome) %}
+  <label for="{{ nome }}">{{ rotulo }}{% if obrigatorio %} <span class="obrigatorio" aria-hidden="true">*</span>{% endif %}</label>
+  <select id="{{ nome }}" name="{{ nome }}" {% if obrigatorio %}required{% endif %}
+          {% if erros[nome] %}class="invalido" aria-invalid="true"{% endif %}>
+    {% if vazio %}<option value="">{{ vazio }}</option>{% endif %}
+    {% for valor, texto in opcoes %}
+      {# |string porque o id vem do banco como numero e o form devolve texto #}
+      <option value="{{ valor }}" {% if valor|string == atual|string %}selected{% endif %}>{{ texto }}</option>
+    {% endfor %}
+  </select>
+  {% if erros[nome] %}<small class="erro-campo">{{ erros[nome] }}</small>{% endif %}
+{% endmacro %}

@@ -1,0 +1,98 @@
+{#
+  pecas/listar.html
+  -----------------
+  Pecas com o estoque de cada uma. Quem esta ABAIXO DO MINIMO:
+    - aparece primeiro (a ordem vem do SQL, em dados.py)
+    - fica com a linha destacada (classe CSS linha--alerta)
+    - ganha a etiqueta "Repor" com a quantidade sugerida
+  Cor + texto, nunca so cor: tem gente daltonica.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+
+{% block titulo %}Pecas e estoque - TechMaint{% endblock %}
+
+{% block conteudo %}
+
+  <div class="barra">
+    <h1>Pecas e estoque</h1>
+    {% if pode('pecas:editar') %}
+      <a class="botao botao--primario" href="{{ url_for('pecas.novo', maquina=maquina) }}">+ Nova</a>
+    {% endif %}
+  </div>
+
+  {% if total_alertas and not so_alerta %}
+    <p class="aviso aviso--alerta">
+      {{ total_alertas }} peca(s) abaixo do minimo.
+      <a href="{{ url_for('pecas.listar', alerta=1) }}">Mostrar so estas</a>
+    </p>
+  {% endif %}
+
+  <form class="busca" method="GET" action="{{ url_for('pecas.listar') }}">
+    <input type="text" name="busca" placeholder="Nome ou codigo" value="{{ busca }}" aria-label="Buscar">
+    <select name="maquina" aria-label="Maquina">
+      <option value="">Todas as maquinas</option>
+      {% for m in maquinas %}
+        <option value="{{ m.id }}" {% if m.id == maquina %}selected{% endif %}>{{ m.nome }}{% if m.patrimonio %} ({{ m.patrimonio }}){% endif %}</option>
+      {% endfor %}
+    </select>
+    <label class="caixinha">
+      <input type="checkbox" name="alerta" value="1" {% if so_alerta %}checked{% endif %}> So em alerta
+    </label>
+    <button class="botao" type="submit">Filtrar</button>
+    {% if busca or maquina or so_alerta %}
+      <a class="botao botao--neutro" href="{{ url_for('pecas.listar') }}">Limpar</a>
+    {% endif %}
+  </form>
+
+  {% if pecas %}
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Peca</th>
+          <th>Maquina</th>
+          <th class="numero">Valor unit.</th>
+          <th class="numero">Atual</th>
+          <th class="numero">Min / Max</th>
+          <th>Situacao</th>
+          {% if pode('pecas:editar') %}<th>Acoes</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pecas %}
+          <tr class="{% if p.situacao == 'REPOR' %}linha--alerta{% endif %}">
+            <td>
+              {{ p.nome }}
+              <small class="detalhe">{{ p.codigo or 'sem codigo' }}{% if p.local %} - {{ p.local }}{% endif %}</small>
+            </td>
+            <td>{{ p.maquina }}</td>
+            <td class="numero">{{ p.valor_centavos | moeda }}</td>
+            <td class="numero"><strong>{{ p.qtde_atual }}</strong></td>
+            <td class="numero">{{ p.qtde_minima }} / {{ p.qtde_maxima }}</td>
+            <td>
+              <span class="etiqueta etiqueta--{{ p.situacao|lower }}">
+                {% if p.situacao == 'REPOR' %}&#9888; {% endif %}{{ situacoes[p.situacao] }}
+              </span>
+              {% if p.situacao == 'REPOR' %}
+                <small class="detalhe">comprar {{ p.sugestao_compra }}</small>
+              {% endif %}
+            </td>
+            {% if pode('pecas:editar') %}
+              <td class="acoes">
+                <a class="botao botao--neutro" href="{{ url_for('pecas.editar', id_peca=p.id) }}">Editar</a>
+                <form method="POST" action="{{ url_for('pecas.apagar', id_peca=p.id) }}"
+                      data-confirmar="Apagar a peca {{ p.nome }} e o estoque dela?">
+                  {{ csrf() }}
+                  <button class="botao botao--perigo" type="submit">Apagar</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="vazio">Nenhuma peca encontrada.</p>
+  {% endif %}
+
+{% endblock %}
