@@ -1,0 +1,36 @@
+{#
+  maquinas/form.html
+  ------------------
+  Novidade em relacao a departamentos: o <select> de departamento e montado
+  com a lista que veio do banco (macro `escolha`, em _macros.html).
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import campo, escolha, csrf %}
+
+{% block titulo %}{{ titulo }} - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <h1>{{ titulo }}</h1>
+
+  <form class="formulario" method="POST">
+    {{ csrf() }}
+    {{ campo("nome", "Nome", item, erros, obrigatorio=true, extra='maxlength=100') }}
+    {{ campo("patrimonio", "Patrimonio", item, erros, ajuda="Numero da plaqueta. Nao pode repetir.", extra='maxlength=30') }}
+
+    <div class="linha">
+      <div class="coluna">{{ campo("fabricante", "Fabricante", item, erros, extra='maxlength=60') }}</div>
+      <div class="coluna">{{ campo("modelo", "Modelo", item, erros, extra='maxlength=60') }}</div>
+    </div>
+
+    {% set opcoes_departamento = [] %}
+    {% for d in departamentos %}{% set _ = opcoes_departamento.append((d.id, d.nome)) %}{% endfor %}
+    {{ escolha("id_departamento", "Departamento", item, erros, opcoes_departamento, obrigatorio=true) }}
+
+    {{ escolha("status", "Status", item or {"status": "OPERANDO"}, erros, status_possiveis.items(), vazio=none) }}
+
+    <div class="acoes-formulario">
+      <button class="botao botao--primario" type="submit">Salvar</button>
+      <a class="botao botao--neutro" href="{{ url_for('maquinas.listar') }}">Cancelar</a>
+    </div>
+  </form>
+{% endblock %}

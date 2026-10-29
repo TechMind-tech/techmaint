@@ -1,0 +1,864 @@
+/*
+  style.css
+  ---------
+  Todo o visual do sistema. CSS puro, sem framework, na ordem em que as
+  coisas aparecem na tela.
+
+  O desenho veio do protótipo no Figma. As decisões que valem lembrar:
+
+  - barra lateral azul-marinho escura, fixa, com o menu agrupado
+  - conteúdo sobre fundo cinza bem claro, em cartões brancos arredondados
+  - azul em degradê nos botões principais e no cabeçalho do login
+  - etiquetas de status em formato de pílula, sempre com fundo claro e
+    texto escuro da mesma cor (verde, amarelo, vermelho, cinza)
+
+  Índice:
+    1. Cores e medidas
+    2. Base
+    3. Casca: barra lateral, barra do topo, conteúdo
+    4. Títulos e cartões
+    5. Botões
+    6. Busca e tabela
+    7. Formulário
+    8. Avisos e etiquetas
+    9. Tela de login
+   10. Celular
+*/
+
+/* ----------------------------------------------- 1. Cores e medidas ----- */
+/*
+  Toda cor do sistema mora aqui. Para mudar a identidade inteira, você
+  mexe nestas linhas e mais nada. É por isso que o resto do arquivo
+  escreve var(--cor-primaria) em vez de #1d4ed8.
+*/
+:root {
+  /* Azuis da marca */
+  --cor-primaria: #1d4ed8;
+  --cor-primaria-escura: #1a3fae;
+  --cor-primaria-clara: #3b82f6;
+  --degrade-primario: linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #0ea5e9 100%);
+
+  /* Azul-marinho da barra lateral */
+  --cor-lateral: #0b1f3f;
+  --cor-lateral-clara: #13315c;
+  --cor-lateral-texto: #c7d6ea;
+  --cor-lateral-titulo: #7b93b8;
+
+  /* Cores de estado */
+  --cor-perigo: #dc2626;
+  --cor-perigo-fundo: #fee2e2;
+  --cor-alerta: #b45309;
+  --cor-alerta-fundo: #fef3c7;
+  --cor-sucesso: #15803d;
+  --cor-sucesso-fundo: #dcfce7;
+
+  /* Neutros */
+  --cor-titulo: #0f2d5c;
+  --cor-texto: #1f2937;
+  --cor-texto-fraco: #64748b;
+  --cor-borda: #e2e8f0;
+  --cor-fundo: #f1f5f9;
+  --cor-caixa: #ffffff;
+
+  /* Medidas */
+  --raio: 10px;
+  --raio-pequeno: 8px;
+  --sombra: 0 1px 2px rgba(15, 45, 92, 0.06), 0 4px 12px rgba(15, 45, 92, 0.05);
+  --largura-lateral: 250px;
+}
+
+/* ------------------------------------------------------- 2. Base -------- */
+* {
+  box-sizing: border-box; /* padding e borda entram na largura, evita surpresa */
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fundo azul em degradê na tela de login (body ganha essa classe no base.html) */
+body.tela-livre {
+  background: radial-gradient(circle at 20% 20%, #1e3a8a 0%, #0b1f3f 55%, #071528 100%);
+  min-height: 100vh;
+}
+
+a {
+  color: var(--cor-primaria);
+}
+
+/* ------------------------------------------- 3. Casca do sistema -------- */
+/*
+  Duas colunas: barra lateral fixa + painel que rola.
+  O min-height: 100vh garante que a barra escura desça até o rodapé
+  mesmo em página curta.
+*/
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sem login não existe barra lateral: o conteúdo ocupa tudo e fica centrado. */
+.app--livre {
+  display: block;
+}
+
+.barra-lateral {
+  width: var(--largura-lateral);
+  flex-shrink: 0;            /* a barra não encolhe quando a tabela é larga */
+  background: var(--cor-lateral);
+  color: var(--cor-lateral-texto);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0 16px;
+  position: sticky;          /* acompanha a rolagem da página */
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;          /* menu comprido rola sozinho */
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 22px;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* O círculo com a engrenagem dentro */
+.marca__icone {
+  display: grid;
+  place-items: center;       /* centraliza nos dois eixos, em uma linha */
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.22);
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;                   /* empurra o rodapé da barra para baixo */
+}
+
+/* PRINCIPAL, CADASTROS: títulos de grupo do menu */
+.menu__grupo {
+  margin: 18px 0 6px;
+  padding: 0 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--cor-lateral-titulo);
+}
+
+.menu__item {
+  padding: 10px 20px;
+  color: var(--cor-lateral-texto);
+  text-decoration: none;
+  font-size: 0.93rem;
+  border-left: 3px solid transparent;  /* o espaço da faixa já fica reservado */
+}
+
+.menu__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+/*
+  Item da página atual. Quem decide qual acende é o base.html, comparando
+  request.blueprint com o nome do módulo.
+*/
+.menu__item--ativo {
+  background: var(--cor-lateral-clara);
+  border-left-color: var(--cor-primaria-clara);
+  color: #fff;
+  font-weight: 600;
+}
+
+.barra-lateral__rodape {
+  margin: 16px 0 0;
+  padding: 0 20px;
+  font-size: 0.75rem;
+  color: var(--cor-lateral-titulo);
+}
+
+/* Coluna da direita */
+.painel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;              /* sem isso, tabela larga estoura o layout */
+}
+
+.barra-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px;
+  background: var(--cor-caixa);
+  border-bottom: 1px solid var(--cor-borda);
+  position: sticky;
+  top: 0;
+  z-index: 5;                /* fica por cima do conteúdo ao rolar */
+}
+
+.sessao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;         /* joga o bloco do usuário para a direita */
+  font-size: 0.9rem;
+}
+
+.sessao__nome {
+  color: var(--cor-texto-fraco);
+}
+
+/* Círculo com as iniciais, igual ao Figma */
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--degrade-primario);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.conteudo {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px;
+}
+
+/* Tela de login: conteúdo estreito e centralizado na vertical */
+.conteudo--livre {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.rodape {
+  text-align: center;
+  color: var(--cor-texto-fraco);
+  font-size: 0.82rem;
+  padding: 20px;
+}
+
+/* ------------------------------------------ 4. Títulos e cartões -------- */
+h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--cor-titulo);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.subtitulo {
+  color: var(--cor-texto-fraco);
+  margin: 4px 0 22px;
+}
+
+/* Linha do título com o botão de ação na ponta direita */
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/*
+  Grade de cartões. O auto-fill com minmax é o jeito de fazer grade
+  responsiva sem media query: cabem 4 colunas na tela grande, 2 no
+  tablet, 1 no celular, sem você escrever nenhum tamanho de tela.
+*/
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px;
+  background: var(--cor-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  color: var(--cor-titulo);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.cartao:hover {
+  border-color: var(--cor-primaria-clara);
+  transform: translateY(-2px);  /* levantada de leve, dá sensação de clicável */
+}
+
+.cartao span {
+  color: var(--cor-texto-fraco);
+  font-size: 0.86rem;
+  font-weight: 400;
+}
+
+/* ---------------------------------------------------- 5. Botões --------- */
+.botao {
+  display: inline-block;
+  padding: 9px 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-caixa);
+  color: var(--cor-texto);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.botao:hover {
+  background: #f1f5f9;
+}
+
+/* O botão principal usa o degradê da marca */
+.botao--primario {
+  background: var(--degrade-primario);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.botao--primario:hover {
+  filter: brightness(1.07);   /* clareia sem precisar de outra cor fixa */
+  background: var(--degrade-primario);
+}
+
+/*
+  Apagar é vazado e só fica vermelho cheio no hover. Se ele já fosse
+  vermelho sólido, seria o elemento mais chamativo da tela, e a ação
+  mais perigosa não deve ser a que mais chama atenção.
+*/
+.botao--perigo {
+  background: var(--cor-caixa);
+  border-color: #fca5a5;
+  color: var(--cor-perigo);
+}
+
+.botao--perigo:hover {
+  background: var(--cor-perigo);
+  color: #fff;
+}
+
+.botao--neutro {
+  background: var(--cor-caixa);
+}
+
+.botao--pequeno {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+.botao--largo {
+  width: 100%;
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+}
+
+/* Hambúrguer do celular. No computador ele some (ver media query). */
+.abrir-menu {
+  display: none;              /* o checkbox em si nunca aparece */
+}
+
+.botao-menu {
+  display: none;              /* o desenho das três barras */
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.botao-menu span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--cor-titulo);
+  border-radius: 2px;
+}
+
+/* --------------------------------------------- 6. Busca e tabela -------- */
+.busca {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  background: var(--cor-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.busca input[type="text"] {
+  flex: 1;
+  min-width: 190px;           /* no celular não espreme além disso */
+}
+
+.busca input,
+.busca select {
+  padding: 9px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.9rem;
+  background: var(--cor-caixa);
+  color: var(--cor-texto);
+}
+
+.busca input:focus,
+.busca select:focus {
+  outline: 2px solid var(--cor-primaria-clara);
+  outline-offset: 1px;
+}
+
+/*
+  A tabela vive dentro de um cartão branco. O overflow: hidden é o que
+  faz os cantos arredondados valerem também para o cabeçalho cinza.
+*/
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cor-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+
+.tabela th,
+.tabela td {
+  padding: 13px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--cor-borda);
+  font-size: 0.9rem;
+}
+
+.tabela th {
+  background: #f8fafc;
+  color: var(--cor-texto-fraco);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tabela tbody tr:hover td {
+  background: #f8fbff;        /* ajuda a seguir a linha com o olho */
+}
+
+.tabela tr:last-child td {
+  border-bottom: none;
+}
+
+/*
+  Célula de ações: os botões (e os <form> de apagar) ficam lado a lado.
+  Não usamos display:flex direto no <td>, porque isso tira a célula do
+  layout da tabela e as bordas da linha ficam desalinhadas.
+*/
+.acoes {
+  white-space: nowrap;
+}
+
+.acoes > a,
+.acoes > form {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.vazio {
+  padding: 44px;
+  text-align: center;
+  color: var(--cor-texto-fraco);
+  background: var(--cor-caixa);
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--raio);
+}
+
+/* Texto pequeno embaixo do principal, dentro de uma célula */
+.detalhe {
+  display: block;
+  color: var(--cor-texto-fraco);
+  font-size: 0.79rem;
+}
+
+.numero {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------- 7. Formulário ---------- */
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 580px;
+  padding: 24px;
+  background: var(--cor-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.formulario label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cor-titulo);
+  margin-top: 14px;
+}
+
+.formulario input,
+.formulario select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.95rem;
+  background: var(--cor-caixa);
+  color: var(--cor-texto);
+}
+
+.formulario input::placeholder {
+  color: #94a3b8;
+}
+
+/*
+  Não tire o outline do foco. Quem navega por teclado depende dele para
+  saber onde está. Se não gostar do padrão, troque o estilo, como aqui.
+*/
+.formulario input:focus,
+.formulario select:focus {
+  outline: none;
+  border-color: var(--cor-primaria-clara);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.acoes-formulario {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.obrigatorio {
+  color: var(--cor-perigo);
+}
+
+.ajuda {
+  color: var(--cor-texto-fraco);
+  font-size: 0.79rem;
+}
+
+.erro-campo {
+  color: var(--cor-perigo);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.formulario input.invalido,
+.formulario select.invalido,
+.grupo-caixinhas.invalido {
+  border-color: var(--cor-perigo);
+  background: #fff7f7;
+}
+
+/* Dois campos lado a lado (fabricante | modelo). No celular, empilham. */
+.linha {
+  display: flex;
+  gap: 14px;
+}
+
+.coluna {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.formulario fieldset {
+  min-width: 0;              /* sem isso o fieldset "vaza" da caixa */
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  padding: 4px 16px 16px;
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formulario legend {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--cor-titulo);
+  padding: 0 6px;
+}
+
+.caixinha {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.formulario .caixinha input {
+  width: auto;               /* checkbox não estica */
+}
+
+.formulario .caixinha--bloco {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  white-space: normal;
+  margin-top: 8px;
+}
+
+.caixinha--bloco input {
+  margin-top: 4px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.saldo {
+  margin: 6px 0;
+}
+
+.saldo .ajuda {
+  display: block;
+}
+
+/* --------------------------------------- 8. Avisos e etiquetas ---------- */
+.aviso {
+  padding: 12px 16px;
+  border-radius: var(--raio-pequeno);
+  font-size: 0.9rem;
+  margin: 0 0 18px;
+  border: 1px solid transparent;
+}
+
+.aviso--sucesso {
+  background: var(--cor-sucesso-fundo);
+  border-color: #86efac;
+  color: var(--cor-sucesso);
+}
+
+.aviso--erro {
+  background: var(--cor-perigo-fundo);
+  border-color: #fca5a5;
+  color: var(--cor-perigo);
+}
+
+.aviso--alerta {
+  background: var(--cor-alerta-fundo);
+  border-color: #fcd34d;
+  color: var(--cor-alerta);
+}
+
+.aviso--alerta a {
+  color: inherit;
+  font-weight: 700;
+}
+
+/* Pílulas de status. O nome da classe vem do status, montado no template. */
+.etiqueta {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;      /* valor alto = pílula perfeita */
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.etiqueta--operando,
+.etiqueta--ok {
+  background: var(--cor-sucesso-fundo);
+  color: var(--cor-sucesso);
+}
+
+.etiqueta--em-manutencao,
+.etiqueta--excesso {
+  background: var(--cor-alerta-fundo);
+  color: var(--cor-alerta);
+}
+
+.etiqueta--parado,
+.etiqueta--repor {
+  background: var(--cor-perigo-fundo);
+  color: var(--cor-perigo);
+}
+
+.etiqueta--inativo {
+  background: #e2e8f0;
+  color: var(--cor-texto-fraco);
+}
+
+.etiqueta--perfil {
+  background: #dbeafe;
+  color: #1e40af;
+  margin: 1px 2px 1px 0;
+}
+
+/* Peça abaixo do mínimo: fundo vermelho claro e faixa na esquerda */
+.linha--alerta td {
+  background: #fff5f5;
+}
+
+.linha--alerta td:first-child {
+  box-shadow: inset 4px 0 0 var(--cor-perigo);
+}
+
+.linha--inativa td {
+  color: var(--cor-texto-fraco);
+}
+
+.erro-codigo {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--cor-texto-fraco);
+}
+
+/* ------------------------------------------------ 9. Tela de login ------ */
+/*
+  O cartão branco flutuando sobre o fundo azul. A faixa superior repete
+  o degradê da marca, com o nome do sistema em cima.
+*/
+.formulario--login {
+  width: 100%;
+  max-width: 400px;
+  padding: 0;
+  overflow: hidden;          /* segura o degradê dentro dos cantos */
+  box-shadow: 0 18px 45px rgba(2, 10, 26, 0.45);
+  border: none;
+}
+
+.login__topo {
+  background: var(--degrade-primario);
+  color: #fff;
+  padding: 30px 28px 26px;
+  text-align: center;
+}
+
+.login__marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.login__topo .subtitulo {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.login__campos {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 28px 30px;
+}
+
+.login__rodape {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--cor-texto-fraco);
+}
+
+/* --------------------------------------------------- 10. Celular -------- */
+/*
+  Abaixo de 900px a barra lateral sai do fluxo e passa a deslizar por
+  cima do conteúdo. Quem abre é o checkbox #abrir-menu: marcado, o
+  seletor ~ alcança a barra e traz ela para a tela.
+
+  Para testar sem celular: F12 e o ícone de telefone no navegador.
+*/
+@media (max-width: 900px) {
+  .barra-lateral {
+    position: fixed;
+    z-index: 20;
+    transform: translateX(-100%);   /* escondida fora da tela */
+    transition: transform 0.2s ease;
+  }
+
+  .abrir-menu:checked ~ .app .barra-lateral {
+    transform: translateX(0);
+  }
+
+  .botao-menu {
+    display: flex;
+  }
+
+  .conteudo {
+    padding: 20px 16px;
+  }
+
+  .barra-topo {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 620px) {
+  .barra,
+  .busca {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Tabela larga rola para o lado em vez de espremer as colunas */
+  .tabela {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .linha {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sessao__nome {
+    display: none;            /* no celular fica só o avatar */
+  }
+
+  h1 {
+    font-size: 1.4rem;
+  }
+}

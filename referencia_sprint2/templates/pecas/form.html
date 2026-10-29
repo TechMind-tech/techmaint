@@ -1,0 +1,57 @@
+{#
+  pecas/form.html
+  ---------------
+  Um formulario, duas tabelas: os campos de cima vao para `pecas` e os de
+  baixo para `estoque_pecas`. O dados.py grava as duas numa transacao so.
+
+  A quantidade atual so pode ser informada ao CRIAR (saldo inicial).
+  Depois disso, saldo so muda por movimentacao de estoque.
+#}
+{% extends "base.html" %}
+{% from "_macros.html" import campo, escolha, csrf, valor_de %}
+
+{% block titulo %}{{ titulo }} - TechMaint{% endblock %}
+
+{% block conteudo %}
+  <h1>{{ titulo }}</h1>
+
+  <form class="formulario" method="POST">
+    {{ csrf() }}
+
+    <fieldset>
+      <legend>Peca</legend>
+      {{ campo("nome", "Nome", item, erros, obrigatorio=true, extra='maxlength=100') }}
+      <div class="linha">
+        <div class="coluna">{{ campo("codigo", "Codigo", item, erros, extra='maxlength=40') }}</div>
+        <div class="coluna">{{ campo("ncm", "NCM", item, erros, ajuda="8 digitos", extra='inputmode=numeric maxlength=10') }}</div>
+      </div>
+      {{ campo("valor", "Valor unitario (R$)", item, erros, obrigatorio=true, ajuda="Ex.: 1234,56", extra='inputmode=decimal') }}
+
+      {% set opcoes_maquina = [] %}
+      {% for m in maquinas %}
+        {% set _ = opcoes_maquina.append((m.id, m.nome ~ (' (' ~ m.patrimonio ~ ')' if m.patrimonio else ''))) %}
+      {% endfor %}
+      {{ escolha("id_maquina", "Maquina", item, erros, opcoes_maquina, obrigatorio=true) }}
+    </fieldset>
+
+    <fieldset>
+      <legend>Estoque</legend>
+      {% if editando %}
+        <p class="saldo">Quantidade atual: <strong>{{ valor_de(item, "qtde_atual") }}</strong>
+          <small class="ajuda">O saldo muda por movimentacao de estoque, nao por aqui.</small></p>
+      {% else %}
+        {{ campo("qtde_atual", "Quantidade inicial", item, erros, tipo="number", extra='min=0 step=1') }}
+      {% endif %}
+      <div class="linha">
+        <div class="coluna">{{ campo("qtde_minima", "Estoque minimo", item, erros, tipo="number", obrigatorio=true, extra='min=0 step=1') }}</div>
+        <div class="coluna">{{ campo("qtde_maxima", "Estoque maximo", item, erros, tipo="number", obrigatorio=true, extra='min=0 step=1') }}</div>
+      </div>
+      {{ campo("local", "Local no almoxarifado", item, erros, extra='maxlength=80') }}
+    </fieldset>
+
+    <div class="acoes-formulario">
+      <button class="botao botao--primario" type="submit">Salvar</button>
+      <a class="botao botao--neutro" href="{{ url_for('pecas.listar') }}">Cancelar</a>
+    </div>
+  </form>
+{% endblock %}
