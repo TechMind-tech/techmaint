@@ -1,0 +1,67 @@
+{#
+  prestadores.html - lista de prestadores de servico (Figma 14). Cadastro em /prestadores/novo.
+  Contexto: itens, busca, filtro_ativo, ufs, especialidades.
+  Item: id, codigo (opcional, ex.: PST-001), razao_social, especialidade, cnpj, telefone, email, ativo.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Prestadores de Serviço · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('prestadores.editar') if pode is defined else true %}
+{% set base = url_for('prestadores.listar') %}
+{% call m.cab_pagina("Prestadores de Serviço", "Empresas e profissionais prestadores de serviço técnico") %}
+  {% if pode_edit %}<a class="btn btn--primario" href="{{ base }}/novo">{{ icone("plus", 16) }} Novo Prestador</a>{% endif %}
+{% endcall %}
+
+<section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Lista de Prestadores</h2></div>
+  <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+    <div class="campo-busca">
+      <label class="sr-only" for="busca">Buscar prestador</label>
+      <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar razão social, CNPJ ou especialidade…" data-filtrar-tabela="#tabela-prest">
+    </div>
+    <div>
+      <label class="sr-only" for="filtro-ativo">Situação</label>
+      <select id="filtro-ativo" name="ativo" data-auto-enviar>
+        <option value="todos"{{ ' selected' if filtro_ativo in (none, 'todos', '') }}>Todos</option>
+        <option value="ativos"{{ ' selected' if filtro_ativo == 'ativos' }}>Ativos</option>
+        <option value="inativos"{{ ' selected' if filtro_ativo == 'inativos' }}>Inativos</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+  </form>
+
+  {% if itens %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de prestadores">
+    <table class="tabela" id="tabela-prest">
+      <thead><tr><th>ID</th><th>Razão social</th><th>Especialidade</th><th>CNPJ</th><th>Telefone</th><th>Status</th>{% if pode_edit %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for x in itens %}
+        <tr>
+          <td class="mono forte nowrap">{{ x.codigo if x.codigo else 'PST-%03d'|format(x.id) }}</td>
+          <td class="forte celula-quebra">{{ x.razao_social }}{% if x.fantasia %}<span class="sub">{{ x.fantasia }}</span>{% endif %}</td>
+          <td>{% if x.especialidade %}{{ m.badge(x.especialidade, 'roxo') }}{% else %}—{% endif %}</td>
+          <td class="mono nowrap">{{ x.cnpj_fmt or x.cnpj }}</td>
+          <td class="nowrap">{{ x.telefone or '—' }}</td>
+          <td>{{ m.badge('Ativo' if x.ativo else 'Inativo') }}</td>
+          {% if pode_edit %}<td class="col-acoes">
+            <a class="btn btn--suave btn--sm" href="{{ base }}/{{ x.id }}/editar" aria-label="Editar {{ x.razao_social }}">Editar</a>
+            {{ m.excluir(base ~ '/' ~ x.id ~ '/excluir', 'Excluir o prestador "' ~ x.razao_social ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ x.razao_social) }}
+          </td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% set ativos = itens|selectattr('ativo')|list|length %}
+  {{ m.contagem(itens|length, "prestador(es) · " ~ ativos ~ (" ativo" if ativos == 1 else " ativos")) }}
+    {{ m.paginacao_auto() }}
+  {% else %}
+    {% call m.estado_vazio("Nenhum prestador encontrado", "Ajuste a busca ou cadastre um novo prestador.", "hard-hat") %}
+      {% if pode_edit %}<a class="btn btn--primario" href="{{ base }}/novo">{{ icone("plus", 16) }} Novo Prestador</a>{% endif %}
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

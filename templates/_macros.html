@@ -1,62 +1,214 @@
 {#
   _macros.html
   ------------
-  Macro = uma "funcao" do Jinja: um pedaco de HTML que recebe parametros.
-  Todos os formularios tinham o mesmo trio label + input + mensagem de erro;
-  em vez de repetir 40 vezes, ele mora aqui.
+  Pecas reutilizaveis das telas. Importe SEMPRE com contexto (precisa do csrf_token):
+      {% import "_macros.html" as m with context %}
+      {{ m.campo("nome", "Nome", f, erros, obrigatorio=true) }}
 
-  Como usar num template:
-
-      {% from "_macros.html" import campo, csrf %}
-      <form method="POST">
-        {{ csrf() }}
-        {{ campo("nome", "Nome", item, erros, obrigatorio=true) }}
-      </form>
-
-  `item`  = o registro que esta sendo editado (ou o que a pessoa digitou,
-            ou None quando e um cadastro novo).
-  `erros` = dicionario {campo: mensagem} que veio da Validacao.
+  Convencao dos formularios (contrato Dev <-> Front):
+    f     = "valores" (o que o usuario digitou, apos erro) ou, se nao houver, o "item" em edicao.
+            Nas telas: {% set f = valores or item or {} %}
+    erros = dict campo -> mensagem (pode ser None).
 #}
+{% from "_icones.html" import icone %}
 
-
-{# Campo escondido com o token CSRF. TODO formulario POST precisa dele. #}
-{% macro csrf() -%}
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{# ---- valor de um campo, sem imprimir "None" ---- #}
+{% macro valor_de(f, nome) -%}
+{%- set x = f[nome] if f else none -%}
+{%- if x is not none and x is not undefined -%}{{ x }}{%- endif -%}
 {%- endmacro %}
 
-
-{# Le o valor do campo dentro de `item`, seja ele qual for. #}
-{% macro valor_de(item, nome) -%}
-  {%- if item and item[nome] is defined and item[nome] is not none -%}{{ item[nome] }}{%- endif -%}
+{# ---- mensagem de erro de um campo ---- #}
+{% macro msg_erro(erros, nome, id) -%}
+{%- if erros and erros[nome] -%}
+<p class="campo__erro" id="{{ id }}-erro">{{ icone("alert-circle", 14) }}<span>{{ erros[nome] }}</span></p>
+{%- endif -%}
 {%- endmacro %}
 
+{# ---- campo de texto / numero / data / senha / e-mail com rotulo e erro ----
+     Atributos extras (maxlength, pattern, step, min, inputmode, autocomplete...) entram como argumentos nomeados. #}
+{% macro campo(nome, rotulo, f, erros, tipo="text", obrigatorio=false, ajuda="", prefixo="", placeholder="", mono=false, largo=false, opcional=false, classe="") -%}
+{%- set id = prefixo ~ nome -%}
+{%- set tem_erro = erros and erros[nome] -%}
+<div class="campo{{ ' campo--largo' if largo }}{{ ' ' ~ classe if classe }}">
+  <label for="{{ id }}">{{ rotulo }}{% if obrigatorio %}<span class="obrig" aria-hidden="true">*</span>{% endif %}{% if opcional %} <span class="opcional">(opcional)</span>{% endif %}</label>
+  <input type="{{ tipo }}" id="{{ id }}" name="{{ nome }}" value="{{ valor_de(f, nome) if tipo != 'password' else '' }}"
+    {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+    {%- if obrigatorio %} required aria-required="true"{% endif %}
+    {%- if mono %} class="mono"{% endif %}
+    {%- if tem_erro %} aria-invalid="true"{% endif %}
+    {%- if tem_erro or ajuda %} aria-describedby="{{ id ~ '-erro' if tem_erro }}{{ ' ' if tem_erro and ajuda }}{{ id ~ '-ajuda' if ajuda }}"{% endif %}
+    {{ kwargs|xmlattr }}>
+  {%- if ajuda %}<p class="campo__ajuda" id="{{ id }}-ajuda">{{ ajuda }}</p>{% endif %}
+  {{ msg_erro(erros, nome, id) }}
+</div>
+{%- endmacro %}
 
-{% macro campo(nome, rotulo, item, erros, tipo="text", obrigatorio=false, ajuda="", extra="") %}
-  <label for="{{ nome }}">{{ rotulo }}{% if obrigatorio %} <span class="obrigatorio" aria-hidden="true">*</span>{% endif %}</label>
-  <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}"
-         value="{{ valor_de(item, nome) }}"
-         {% if obrigatorio %}required{% endif %}
-         {% if erros[nome] %}class="invalido" aria-invalid="true" aria-describedby="erro-{{ nome }}"{% endif %}
-         {{ extra }}>
-  {% if ajuda %}<small class="ajuda">{{ ajuda }}</small>{% endif %}
-  {% if erros[nome] %}<small class="erro-campo" id="erro-{{ nome }}">{{ erros[nome] }}</small>{% endif %}
-{% endmacro %}
+{# ---- area de texto ---- #}
+{% macro area(nome, rotulo, f, erros, obrigatorio=false, ajuda="", prefixo="", placeholder="", linhas=4, opcional=false) -%}
+{%- set id = prefixo ~ nome -%}
+{%- set tem_erro = erros and erros[nome] -%}
+<div class="campo campo--largo">
+  <label for="{{ id }}">{{ rotulo }}{% if obrigatorio %}<span class="obrig" aria-hidden="true">*</span>{% endif %}{% if opcional %} <span class="opcional">(opcional)</span>{% endif %}</label>
+  <textarea id="{{ id }}" name="{{ nome }}" rows="{{ linhas }}"
+    {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+    {%- if obrigatorio %} required aria-required="true"{% endif %}
+    {%- if tem_erro %} aria-invalid="true" aria-describedby="{{ id }}-erro"{% endif %}
+    {{ kwargs|xmlattr }}>{{ valor_de(f, nome) }}</textarea>
+  {%- if ajuda %}<p class="campo__ajuda">{{ ajuda }}</p>{% endif %}
+  {{ msg_erro(erros, nome, id) }}
+</div>
+{%- endmacro %}
 
-
-{#
-  <select> montado a partir de uma lista do banco.
-  `opcoes` = lista de pares (valor, texto).
-#}
-{% macro escolha(nome, rotulo, item, erros, opcoes, obrigatorio=false, vazio="Selecione...") %}
-  {% set atual = valor_de(item, nome) %}
-  <label for="{{ nome }}">{{ rotulo }}{% if obrigatorio %} <span class="obrigatorio" aria-hidden="true">*</span>{% endif %}</label>
-  <select id="{{ nome }}" name="{{ nome }}" {% if obrigatorio %}required{% endif %}
-          {% if erros[nome] %}class="invalido" aria-invalid="true"{% endif %}>
-    {% if vazio %}<option value="">{{ vazio }}</option>{% endif %}
-    {% for valor, texto in opcoes %}
-      {# |string porque o id vem do banco como numero e o form devolve texto #}
-      <option value="{{ valor }}" {% if valor|string == atual|string %}selected{% endif %}>{{ texto }}</option>
-    {% endfor %}
+{# ---- lista suspensa ----
+     opcoes aceita: lista de strings, de dicts ({id|valor, nome|rotulo}) ou de pares (valor, rotulo).
+     "vazio": texto da primeira opcao em branco (use none para nao mostrar). #}
+{% macro selecao(nome, rotulo, opcoes, f, erros, obrigatorio=false, ajuda="", prefixo="", vazio="Selecione…", largo=false, opcional=false, escolhido=none, classe="") -%}
+{%- set id = prefixo ~ nome -%}
+{%- set tem_erro = erros and erros[nome] -%}
+{%- set atual = (escolhido if escolhido is not none else valor_de(f, nome))|string -%}
+<div class="campo{{ ' campo--largo' if largo }}{{ ' ' ~ classe if classe }}">
+  <label for="{{ id }}">{{ rotulo }}{% if obrigatorio %}<span class="obrig" aria-hidden="true">*</span>{% endif %}{% if opcional %} <span class="opcional">(opcional)</span>{% endif %}</label>
+  <select id="{{ id }}" name="{{ nome }}"
+    {%- if obrigatorio %} required aria-required="true"{% endif %}
+    {%- if tem_erro or ajuda %} aria-describedby="{{ id ~ '-erro' if tem_erro }}{{ ' ' if tem_erro and ajuda }}{{ id ~ '-ajuda' if ajuda }}"{% endif %}
+    {%- if tem_erro %} aria-invalid="true"{% endif %}
+    {{ kwargs|xmlattr }}>
+    {%- if vazio is not none %}<option value="">{{ vazio }}</option>{% endif %}
+    {{ opcoes_html(opcoes, atual) }}
   </select>
-  {% if erros[nome] %}<small class="erro-campo">{{ erros[nome] }}</small>{% endif %}
-{% endmacro %}
+  {%- if ajuda %}<p class="campo__ajuda" id="{{ id }}-ajuda">{{ ajuda }}</p>{% endif %}
+  {{ msg_erro(erros, nome, id) }}
+</div>
+{%- endmacro %}
+
+{# ---- <option> a partir de strings, dicts ou pares ---- #}
+{% macro opcoes_html(opcoes, atual="") -%}
+{%- for o in (opcoes or []) -%}
+  {%- if o is string -%}{%- set v = o -%}{%- set r = o -%}
+  {%- elif o is mapping -%}
+    {%- set v = o['id'] if o['id'] is defined else (o['valor'] if o['valor'] is defined else o['nome']) -%}
+    {%- set r = o['nome'] if o['nome'] is defined else (o['rotulo'] if o['rotulo'] is defined else (o['descricao'] if o['descricao'] is defined else v)) -%}
+  {%- else -%}{%- set v = o[0] -%}{%- set r = o[1] -%}
+  {%- endif -%}
+<option value="{{ v }}"{{ ' selected' if (v|string) == (atual|string) }}>{{ r }}</option>
+{%- endfor -%}
+{%- endmacro %}
+
+{# ---- caixa de marcacao (checkbox) ---- #}
+{% macro marcador(nome, rotulo, marcado=false, prefixo="") -%}
+<div class="campo">
+  <label class="marcador" for="{{ prefixo ~ nome }}"><input type="checkbox" id="{{ prefixo ~ nome }}" name="{{ nome }}" value="1"{{ ' checked' if marcado }}> {{ rotulo }}</label>
+</div>
+{%- endmacro %}
+
+{# ---- badge de status/prioridade/perfil: a COR vem do texto, mas o texto sempre aparece ---- #}
+{% macro badge(texto, tom=none) -%}
+{%- set mapa = {
+  'ativo':'ok', 'inativo':'neutro', 'em manutenção':'aviso', 'baixado':'erro',
+  'aberto':'info', 'aberta':'info', 'em andamento':'aviso', 'concluído':'ok', 'concluída':'ok',
+  'cancelado':'neutro', 'cancelada':'neutro',
+  'alta':'erro', 'média':'aviso', 'baixa':'ok',
+  'administrador':'erro', 'técnico':'info', 'gestor':'ok', 'usuário comum':'aviso',
+  'entrada':'ok', 'saída':'erro'
+} -%}
+{%- set t = tom or mapa.get((texto or '')|string|lower, 'neutro') -%}
+<span class="badge badge--{{ t }}">{{ texto }}</span>
+{%- endmacro %}
+
+{# ---- cabecalho de pagina: {% call m.cab_pagina("Titulo", "subtitulo") %}botoes{% endcall %} ---- #}
+{% macro cab_pagina(titulo, subtitulo="") -%}
+<div class="pagina-cab">
+  <div class="pagina-cab__texto">
+    <h1>{{ titulo }}</h1>
+    {% if subtitulo %}<p class="pagina-cab__sub">{{ subtitulo }}</p>{% endif %}
+  </div>
+  {% if caller %}<div class="pagina-cab__acoes">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# ---- cartao de KPI (dashboard). cor: marinho|laranja|verde|ciano|vermelho ---- #}
+{% macro kpi(id, rotulo, valor, detalhe="", cor="marinho", icone_nome="clipboard-list") -%}
+<div class="kpi kpi--{{ cor }}" data-kpi="{{ id }}">
+  <span class="kpi__ponto" aria-hidden="true"></span>
+  <span class="kpi__icone">{{ icone(icone_nome, 22) }}</span>
+  <span class="kpi__valor" data-kpi-valor>{{ valor }}</span>
+  <span class="kpi__rotulo">{{ rotulo }}</span>
+  <span class="kpi__detalhe" data-kpi-detalhe>{{ detalhe }}</span>
+</div>
+{%- endmacro %}
+
+{# ---- contador pequeno (perfis, status de pedidos) ---- #}
+{% macro contador(valor, rotulo, cor="ciano", vertical=false, sub="") -%}
+<div class="contador contador--{{ cor }}{{ ' contador--vertical' if vertical }}">
+  {% if not vertical %}<span class="contador__barra" aria-hidden="true"></span>{% endif %}
+  <span class="contador__valor">{{ valor }}</span>
+  <span class="contador__rotulo">{% if sub %}<b>{{ rotulo }}</b> <span class="contador__sub">{{ sub }}</span>{% else %}{{ rotulo }}{% endif %}</span>
+</div>
+{%- endmacro %}
+
+{# ---- estado vazio. Use dentro de um cartao ou no lugar da tabela ---- #}
+{% macro estado_vazio(titulo, texto="", icone_nome="search") -%}
+<div class="vazio">
+  <div class="vazio__icone">{{ icone(icone_nome, 26) }}</div>
+  <p class="vazio__titulo">{{ titulo }}</p>
+  {% if texto %}<p class="vazio__texto">{{ texto }}</p>{% endif %}
+  {% if caller %}{{ caller() }}{% endif %}
+</div>
+{%- endmacro %}
+
+{# ---- botao de exclusao com dialogo de confirmacao (JS abre o <dialog>; sem JS envia direto) ---- #}
+{% macro excluir(url, mensagem, rotulo="Excluir", aria="", classe="btn btn--perigo btn--sm", titulo="Confirmar exclusão", botao="Excluir") -%}
+<form method="post" action="{{ url }}" class="em-linha" data-confirmar="{{ mensagem }}" data-confirmar-titulo="{{ titulo }}" data-confirmar-botao="{{ botao }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="{{ classe }}"{% if aria %} aria-label="{{ aria }}"{% endif %}>{{ rotulo }}</button>
+</form>
+{%- endmacro %}
+
+{# ---- botao que envia um POST simples (cancelar, aprovar, fechar...) com confirmacao opcional ---- #}
+{% macro acao_post(url, rotulo, classe="btn btn--secundario", confirmar="", titulo="Confirmar ação", botao="Confirmar", icone_nome="", aria="", tom="perigo") -%}
+<form method="post" action="{{ url }}" class="em-linha"{% if confirmar %} data-confirmar="{{ confirmar }}" data-confirmar-titulo="{{ titulo }}" data-confirmar-botao="{{ botao }}" data-confirmar-tom="{{ tom }}"{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="{{ classe }}"{% if aria %} aria-label="{{ aria }}"{% endif %}>{% if icone_nome %}{{ icone(icone_nome, 16) }}{% endif %}{{ rotulo }}</button>
+</form>
+{%- endmacro %}
+
+{# ---- paginacao: usa `pagina` e `total_paginas` do contexto e preserva os filtros da URL (so aparece com 2+ paginas) ---- #}
+{% macro paginacao_auto() -%}
+{%- if total_paginas is defined and total_paginas and total_paginas > 1 -%}
+{%- set qs = request.args.to_dict() -%}
+<nav class="paginacao" aria-label="Paginação">
+  {% if pagina > 1 %}<a href="{{ request.path }}?{{ dict(qs, pagina=pagina-1)|urlencode }}" rel="prev">Anterior</a>{% endif %}
+  <span aria-current="page">Página {{ pagina }} de {{ total_paginas }}</span>
+  {% if pagina < total_paginas %}<a href="{{ request.path }}?{{ dict(qs, pagina=pagina+1)|urlencode }}" rel="next">Próxima</a>{% endif %}
+</nav>
+{%- endif -%}
+{%- endmacro %}
+
+{# ---- rodape de tabela: "3 fornecedor(es) encontrado(s)" ---- #}
+{% macro contagem(n, texto) -%}
+<div class="cartao__rodape" data-contagem aria-live="polite">{{ n }} {{ texto }}</div>
+{%- endmacro %}
+
+{# ---- csrf escondido (para formularios escritos a mao) ---- #}
+{% macro csrf() -%}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{%- endmacro %}
+
+{# ---- cartao de grafico: o <canvas> e preenchido por graficos.js; a tabela dentro do <details> e a versao acessivel ---- #}
+{% macro grafico(id, titulo, col_rotulo="Item", col_valor="Valor", altura="") -%}
+<section class="cartao grafico-cartao" data-grafico="{{ id }}" aria-labelledby="gt-{{ id }}">
+  <h2 class="cartao__titulo" id="gt-{{ id }}">{{ titulo }}</h2>
+  <div class="grafico"{% if altura %} style="--altura: {{ altura }}"{% endif %}>
+    <canvas id="canvas-{{ id }}" role="img" aria-label="Gráfico: {{ titulo }}. Os mesmos dados estão na tabela logo abaixo."></canvas>
+    <p class="grafico__msg" data-grafico-msg hidden></p>
+  </div>
+  <details class="recolher">
+    <summary>Ver dados em tabela</summary>
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Dados do gráfico {{ titulo }}">
+      <table class="tabela tabela--compacta">
+        <thead><tr><th>{{ col_rotulo }}</th><th class="col-num">{{ col_valor }}</th></tr></thead>
+        <tbody data-grafico-tabela><tr><td colspan="2" class="mudo">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endmacro %}

@@ -1,0 +1,36 @@
+{#
+  prestador_form.html - novo/editar prestador de servico (Manual 1.4, mesma logica do fornecedor).
+  Contexto: item, erros, valores, ufs, especialidades.
+  Campos: os do fornecedor + especialidade.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% import "_form_empresa.html" as fe with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}{{ "Editar prestador" if item else "Novo prestador" }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set f = valores or (dict(item, cnpj=item.cnpj_fmt, cep=item.cep_fmt) if item else {}) %}
+{% set base = url_for('prestadores.listar') %}
+{% call m.cab_pagina("Editar Prestador" if item else "Novo Prestador", "Dados cadastrais do prestador de serviço") %}
+  <a class="btn btn--secundario" href="{{ base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+{% endcall %}
+
+<form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if item else base ~ '/novo' }}" class="cartao" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+  {{ fe.campos(f, erros, ufs, prestador=true, especialidades=especialidades) }}
+  <div class="btn-grupo form-acoes">
+    <button type="submit" class="btn btn--primario btn--grande">{{ icone("save", 16) }} Salvar</button>
+    <a class="btn btn--secundario" href="{{ base }}">Cancelar</a>
+    {% if item %}
+      <button type="submit" class="btn btn--perigo" form="form-excluir">Excluir</button>
+    {% endif %}
+  </div>
+</form>
+{% if item %}
+  <form method="post" action="{{ base }}/{{ item.id }}/excluir" id="form-excluir" data-confirmar='Excluir o prestador "{{ item.razao_social }}"? Esta ação não pode ser desfeita.' data-confirmar-titulo="Confirmar exclusão" data-confirmar-botao="Excluir">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+{% endif %}
+{% endblock %}

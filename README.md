@@ -1,292 +1,237 @@
-# TechMaint
+# TechMaint — Sistema de Gestão de Manutenção
 
-Sistema de manutenção predial e de máquinas em Flask, feito em etapas.
-Continua **propositalmente simples**: só Flask, SQLite (`sqlite3` puro, sem ORM),
-Jinja e CSS. Tudo comentado em português.
+Sistema web para registrar equipamentos, peças, pedidos de manutenção e ordens de
+serviço (OS), controlar o estoque de peças e acompanhar indicadores e relatórios.
 
-A Sprint 2 trouxe login com perfis de acesso e os cadastros de Departamentos,
-Máquinas, Peças com estoque, Fornecedores e Prestadores de serviço, cada um
-com **telas** e **API JSON**.
+Feito de propósito com poucas peças, para ser lido e aprendido: **Flask 3** (Python),
+**SQLite** (módulo `sqlite3`, sem ORM), **Jinja** (templates) e CSS/JS próprios.
+Tudo em português do Brasil e comentado.
 
 ---
 
 ## 1. Como rodar
 
-No terminal, dentro da pasta do projeto:
+Dentro da pasta do projeto:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\Activate.ps1          # Windows (PowerShell)
-pip install -r requirements.txt
-python seed.py                       # opcional: carrega dados de exemplo
-python app.py
+source .venv/bin/activate           # Linux / macOS
+
+pip install -r requirements.txt     # Flask, openpyxl (Excel) e reportlab (PDF)
+python seed.py                      # cria o banco e os dados de demonstração
+python app.py                       # http://127.0.0.1:5000
 ```
 
-Abra <http://127.0.0.1:5000>. O arquivo `techmaint.db` é criado sozinho.
+- O arquivo do banco (`techmaint.db`) é criado sozinho. Para usar outro caminho:
+  `TECHMAINT_DB=/caminho/meu.db`.
+- `python seed.py` pode ser repetido à vontade: não duplica nada e não desfaz o que
+  você alterou. `python seed.py --limpar` **apaga** o banco e recria (só em desenvolvimento).
+- Sem o `seed.py` o sistema sobe com o banco vazio e **sem nenhum usuário** para entrar.
 
-| Login | Senha | Perfil |
-|---|---|---|
-| `admin` | `admin123` | ADMINISTRADOR (criado sozinho no primeiro `python app.py`) |
-| `gestor` | `senha123` | GESTOR (só com `python seed.py`) |
-| `tecnico` | `senha123` | TÉCNICO (só com `python seed.py`) |
-| `cliente` | `senha123` | CLIENTE (só com `python seed.py`) |
+> **Ambiente virtual (`venv`)** é uma pasta com um Python só para este projeto, para
+> as bibliotecas de um projeto não conflitarem com as de outro.
 
-Entre com cada um e repare como o menu e os botões mudam. Troque a senha do
-`admin` pela tela de Usuários.
+### Usuários de demonstração (dados fictícios, só para desenvolvimento)
 
-> Se você já tinha um `techmaint.db` da versão com Equipamentos, apague o
-> arquivo antes de rodar: o banco novo tem outras tabelas.
+| Usuário | Senha | Nome | Perfil | Departamento |
+|---|---|---|---|---|
+| `admin` | `admin123` | João Administrador | Administrador | TI |
+| `tecnico` | `tecnico123` | Maria Técnica | Técnico | Manutenção |
+| `gestor` | `gestor123` | Carlos Gestor | Gestor | Produção |
+| `solicitante` | `solicitante123` | Ana Solicitante | Usuário Comum | Produção |
+| `plima` | `plima123` | Pedro Lima | Técnico | Manutenção |
 
-> **Ambiente virtual (`venv`)** é uma pasta com um Python só para este projeto.
-> Você sabe que está ativo quando aparece `(.venv)` no começo da linha.
+**Troque essas senhas (ou apague os usuários) antes de usar fora do seu computador.**
+As senhas curtas valem só para o seed: o cadastro de usuários exige 8 caracteres ou mais.
+
+### Variáveis de ambiente
+
+| Variável | Para quê |
+|---|---|
+| `TECHMAINT_DB` | caminho do arquivo SQLite (padrão: `techmaint.db` na pasta do projeto) |
+| `TECHMAINT_SECRET_KEY` | chave que assina a sessão. **Defina em produção.** Sem ela, o app usa uma chave aleatória (as sessões caem a cada reinício) |
+| `FLASK_DEBUG=1` | modo de desenvolvimento (recarrega sozinho e mostra erros) |
+| `TECHMAINT_HOJE=AAAA-MM-DD` | congela a data "de hoje" (útil em testes e demonstrações) |
+| `TECHMAINT_COOKIE_SEGURO=1` | marca o cookie de sessão como `Secure` (ligue ao usar HTTPS) |
+| `PORT` | porta do `python app.py` (padrão 5000) |
 
 ---
 
-## 2. Os arquivos
+## 2. Estrutura do projeto
 
 ```
 techmaint/
-├── app.py              cria o app, registra os módulos, erros e filtros
-├── database.py         conexão com o banco + atalhos consultar/executar
-├── schema.sql          a MODELAGEM: CREATE TABLE de todas as tabelas
-├── seguranca.py        login obrigatório, perfis, permissões (RBAC), CSRF
-├── validadores.py      regras de validação (CNPJ, dinheiro, e-mail...)
-├── api.py              ajudantes das respostas JSON
-├── seed.py             perfis, admin inicial e dados de exemplo
-├── modulos/
-│   ├── departamentos/  ← MÓDULO DE REFERÊNCIA: leia este primeiro
-│   │   ├── dados.py        o SQL do módulo
-│   │   └── rotas.py        telas + API do módulo
-│   ├── maquinas/
-│   ├── pecas/          peças + estoque mínimo/máximo
-│   ├── fornecedores/
-│   ├── prestadores/
-│   └── usuarios/       login, logout e CRUD de usuários
-├── templates/
-│   ├── base.html       molde: menu por perfil, avisos, rodapé
-│   ├── _macros.html    campo de formulário reutilizável + token CSRF
-│   ├── inicio.html     página inicial com um cartão por módulo
-│   ├── erros/          página amigável de erro (403, 404...)
-│   └── <módulo>/       listar.html e form.html de cada módulo
-├── static/css/style.css
-├── tests/              testes automáticos (pytest)
-└── docs/
-    ├── usuarios-diretos-e-indiretos.md   (SB-111)
-    ├── modelo-de-dados.md                diagrama ER e regras
-    └── api.md                            todos os endpoints JSON
+├── app.py                 fábrica do app (criar_app): login, CSRF, permissões, erros 403/404/500
+├── database.py            conexão SQLite, transações, init_db() e parâmetros
+├── schema.sql             todas as tabelas (CREATE TABLE IF NOT EXISTS)
+├── seed.py                dados de demonstração (idempotente)
+├── dados/                 grupos, subgrupos e equipamentos reais (JSON gerado do documento de apoio)
+├── modulos/               as rotas, um arquivo por área (Blueprints)
+│   ├── auth.py            login, sair, recuperar e redefinir senha
+│   ├── painel.py          menu principal e dashboard
+│   ├── usuarios.py · departamentos.py · equipamentos.py · pecas.py
+│   ├── fornecedores.py · prestadores.py (+ _pj.py, a parte em comum das duas)
+│   ├── pedidos.py · ordens.py · estoque.py
+│   ├── relatorios.py      relatórios e exportações
+│   └── configuracoes.py   perfil, senha, tema e idioma
+├── servicos/              regras de negócio (sem HTML)
+│   ├── manutencao.py      pedido → OS → peças → fechar
+│   ├── estoque.py         único lugar que mexe no saldo de peças
+│   ├── permissoes.py      quem pode o quê (matriz) e o menu
+│   ├── seguranca.py       senhas, CSRF, bloqueio de login, tokens
+│   ├── indicadores.py     números do dashboard e dos relatórios
+│   ├── exportacao.py      PDF, Excel e CSV
+│   ├── alertas.py         sino do cabeçalho
+│   └── validacoes.py · formularios.py · formatacao.py · consultas.py · auditoria.py ...
+├── templates/             páginas (Jinja)
+├── static/                CSS, JS e Chart.js (tudo local, sem CDN)
+└── tests/                 testes automatizados (pytest e Playwright)
 ```
 
-A regra de ouro continua: **`rotas.py` não escreve SQL** e **`dados.py` não
-conhece HTML**.
+Regra de ouro: **rota (`modulos/`) recebe e responde; regra de negócio (`servicos/`)
+decide; template só mostra.** Assim cada arquivo tem um trabalho só.
 
----
-
-## 3. Como os dados percorrem o sistema
+### Caminho de uma página
 
 ```
-navegador → seguranca.py (logado? tem permissão? token CSRF ok?)
-          → modulos/x/rotas.py (valida com validadores.py)
-          → modulos/x/dados.py (SQL) → banco (SQLite)
-          → templates/x/*.html  → HTML pronto → navegador
-                         ou JSON (rotas /api/...)
+navegador → before_request (logado? CSRF confere?) → rota (modulos/*.py)
+          → regra (servicos/*.py) → banco (SQLite) → template (templates/*.html) → navegador
 ```
 
-Cada módulo tem as mesmas rotas. Exemplo com departamentos:
+---
 
-| Endereço | Método | Função | Operação |
-|---|---|---|---|
-| `/departamentos/` | GET | `listar` | READ (tela) |
-| `/departamentos/novo` | GET / POST | `novo` | formulário / CREATE |
-| `/departamentos/editar/<id>` | GET / POST | `editar` | formulário / UPDATE |
-| `/departamentos/apagar/<id>` | POST | `apagar` | DELETE |
-| `/api/departamentos` | GET / POST | `api_listar` / `api_criar` | READ / CREATE (JSON) |
-| `/api/departamentos/<id>` | GET / PUT / DELETE | `api_buscar` / `api_atualizar` / `api_apagar` | JSON |
+## 3. Perfis e permissões
 
-Fornecedores, prestadores e usuários trocam o `apagar` por `desativar` e
-`reativar` (exclusão lógica). A lista completa da API está em [docs/api.md](docs/api.md).
+| Área | Administrador | Gestor | Técnico | Usuário Comum |
+|---|---|---|---|---|
+| Dashboard e relatórios | ver e exportar | ver e exportar | ver (sem valores em R$) | só relatório de OS (as próprias) |
+| Usuários e perfis | tudo | — | — | — |
+| Equipamentos, peças | tudo | ver | tudo | — |
+| Fornecedores, prestadores, departamentos | tudo | ver | ver | — |
+| Pedidos de manutenção | tudo | tudo e aprova | abrir, editar e consultar | abrir e ver os próprios |
+| Ordens de serviço | tudo (reabre OS) | ver e fechar | tudo | ver o status das próprias |
+| Movimentação de estoque | tudo | ver | tudo | — |
+| Configurações | sim | sim | sim | sim |
+
+- Sem login → redireciona (302) para `/login?proximo=...`. Sem permissão → página **403**.
+- Itens de menu que o perfil não pode abrir não aparecem.
+- A matriz fica em `servicos/permissoes.py` (fonte da verdade) e é copiada para as tabelas
+  `permissoes` e `perfis_permissoes`. Na rota, basta `@permissao("equipamentos.editar")`.
 
 ---
 
-## 4. Ideias que se repetem em qualquer CRUD
+## 4. Rotas principais
 
-**Um formulário serve para criar e editar.** A variável `item` decide: vazia
-mostra campos em branco, preenchida mostra os valores atuais.
-
-**Post/Redirect/Get.** Depois de gravar, a rota faz `redirect`. Sem isso, o F5
-cadastraria o mesmo registro duas vezes.
-
-**Query parametrizada.** Todo SQL usa `?` no lugar dos valores. Nunca monte SQL
-com f-string: é assim que nasce SQL Injection.
-
-**Valide no Python, não só no HTML.** O `required` do navegador ajuda, mas pode
-ser burlado. A validação que vale é a do servidor, e ela é a mesma para a tela
-e para a API (`validar()` no `rotas.py` de cada módulo).
-
-**Regra importante fica em dois lugares.** Na rota, para dar uma mensagem clara
-("Já existe um fornecedor com este CNPJ"); no banco (`UNIQUE`, `CHECK`,
-`FOREIGN KEY`), para garantir mesmo se o código falhar.
-
-**Permissão na rota, não só no menu.** Esconder o botão é conforto. Segurança é
-o `@requer_permissao("maquinas:editar")` em cima da rota.
-
-**Gravou em duas tabelas? Use transação.** Peça e estoque (e usuário e perfis)
-são gravados com `with conexao:`: ou grava tudo, ou não grava nada.
-
----
-
-## 5. Criar um módulo novo (ex.: Grupos)
-
-1. `schema.sql`: escreva o `CREATE TABLE IF NOT EXISTS grupos (...)`.
-2. `modulos/grupos/`: copie a pasta de `departamentos` (com o `__init__.py`
-   vazio) e troque nomes, colunas e SQL em `dados.py` e `rotas.py`.
-3. `templates/grupos/`: copie `listar.html` e `form.html` de departamentos e
-   ajuste colunas e campos.
-4. `seguranca.py`: adicione `"grupos": "Grupos"` em `MODULOS` e as permissões
-   `grupos:ver` e `grupos:editar` nos perfis da `MATRIZ`.
-5. `app.py`: importe o `bp` e registre com `app.register_blueprint(...)`.
-6. `base.html` e `inicio.html`: adicione o link, dentro de `{% if pode('grupos:ver') %}`.
-7. `tests/`: escreva pelo menos criar, validar e o 403 de quem não pode.
-
-Rode `python app.py` de novo: as tabelas novas e as permissões novas entram sozinhas.
-
----
-
-## 6. Segurança, em uma página
-
-| O quê | Onde | Como |
-|---|---|---|
-| Senha | `modulos/usuarios/rotas.py` | Só o hash vai para o banco (`generate_password_hash`) |
-| Login obrigatório | `seguranca.py` | `@requer_permissao` manda para `/login?next=...` |
-| Perfis e permissões (RBAC) | `seguranca.py` → `MATRIZ` | usuário → perfis → permissões; 403 se não pode |
-| CSRF nas telas | `seguranca.py` + `_macros.html` | Todo `<form method="POST">` leva `{{ csrf() }}` |
-| CSRF na API | `seguranca.py` | POST/PUT só aceitam `Content-Type: application/json` |
-| Redirecionamento aberto | `seguranca.destino_seguro` | O `?next=` só aceita endereços do próprio site |
-| Erros | `app.py` | Página amigável; nunca o stack trace para o usuário |
-
-**Esqueceu o `{{ csrf() }}` no formulário?** O POST volta com erro 400
-"Formulario expirado". É a proteção funcionando.
-
----
-
-## 7. Testes
-
-```bash
-pip install -r requirements.txt
-python -m pytest
-```
-
-Cada teste roda num banco novo e descartável: o seu `techmaint.db` não é tocado.
-
-| Arquivo | O que confere |
+| Endereço | Para quê |
 |---|---|
-| `tests/test_validadores.py` | CNPJ, dinheiro, e-mail |
-| `tests/test_autenticacao.py` | login, logout, hash da senha, CSRF, `?next=` |
-| `tests/test_permissoes.py` | os 4 perfis, 403 no servidor, menu por perfil |
-| `tests/test_usuarios.py` | CRUD de usuários, regras do último administrador |
-| `tests/test_cadastros.py` | os cinco cadastros, estoque, API e as regras do banco |
+| `/login` · `/logout` · `/recuperar-senha` · `/redefinir-senha/<token>` | acesso |
+| `/` · `/menu` · `/dashboard` | início, cards do menu e indicadores |
+| `/usuarios` · `/departamentos` · `/equipamentos` · `/pecas` | cadastros (lista + formulário na mesma tela; `/<id>/editar`, `/<id>/excluir`) |
+| `/fornecedores` · `/prestadores` | idem, com `/novo` |
+| `/pedidos` · `/pedidos/novo` · `/pedidos/<id>` | pedidos (`/editar`, `/cancelar`, `/aprovar`, `/abrir-os`) |
+| `/os` · `/os/nova` · `/os/<id>` | ordens de serviço (`/pecas`, `/servicos`, `/apontamentos`, `/fechar`, `/reabrir`) |
+| `/estoque` | movimentação de estoque (registrar e histórico) |
+| `/relatorios?aba=os\|estoque\|financeiro\|fornecedores` | relatórios |
+| `/configuracoes` | perfil, senha, tema e idioma |
+| `/api/dashboard` · `/api/relatorios/<aba>` · `/api/subgrupos?grupo_id=` | JSON (gráficos e select dependente) |
+| `/dashboard/exportar.pdf` · `.xlsx` · `/relatorios/<aba>/exportar.pdf` · `.xlsx` · `.csv` | exportações (Administrador e Gestor) |
+
+**GET** = quero ver uma página. **POST** = estou enviando dados. Ações que alteram dados
+(excluir, aprovar, fechar...) só aceitam POST, sempre com o token CSRF.
 
 ---
 
-## 8. Entregas da Sprint 2
+## 5. Regras de negócio
 
-| Tarefa | História | Entrega | Onde |
-|---|---|---|---|
-| SB-102 | US-01 Usuários | API CRUD de usuários com RBAC | `modulos/usuarios/`, `seguranca.py` |
-| SB-103 | US-02 Máquinas | Modelagem: máquinas e departamentos | `schema.sql` (bloco 2), `docs/modelo-de-dados.md` |
-| SB-104 | US-02 Máquinas | API CRUD de máquinas (e departamentos) | `modulos/maquinas/`, `modulos/departamentos/` |
-| SB-105 | US-03 Peças | Modelagem: peças e estoque | `schema.sql` (bloco 3) |
-| SB-106 | US-03 Peças | API CRUD de peças + estoque mínimo/máximo | `modulos/pecas/` |
-| SB-107 | US-04 Fornecedores | Modelagem: fornecedores | `schema.sql` (bloco 4) |
-| SB-108 | US-04 Fornecedores | API CRUD de fornecedores | `modulos/fornecedores/`, `validadores.py` |
-| SB-109 | US-05 Prestadores | Modelagem: prestadores de serviço | `schema.sql` (bloco 5) |
-| SB-110 | US-05 Prestadores | API CRUD de prestadores | `modulos/prestadores/` |
-| SB-111 | US-15 Produto | Usuários diretos e indiretos | `docs/usuarios-diretos-e-indiretos.md` |
-
-"API CRUD" aqui significa **as duas coisas**: as telas HTML (que o PWA usa) e
-as rotas JSON em `/api/...`, ambas chamando o mesmo `dados.py`.
-
----
-
-## 9. Próximos passos (Sprint 3)
-
-- Movimentação de estoque (entrada e saída) e entrada de nota fiscal atualizando o saldo.
-- Pedidos de manutenção e ordens de serviço, com as permissões de aprovar (GESTOR).
-- Tela de detalhe da máquina com as peças e o histórico de manutenção.
+1. **Pedido → OS.** Abrir uma OS a partir de um pedido "Aberto" o muda para "Em andamento".
+   Cada pedido tem no máximo uma OS ativa. Cancelar pedido só se estiver "Aberto" e sem OS ativa.
+2. **Peças na OS.** Adicionar peça confere o saldo, baixa o estoque e cria uma movimentação de
+   *Saída*. Alterar a quantidade ou remover a peça estorna a diferença. A mesma peça lançada duas
+   vezes soma na mesma linha. OS concluída ou cancelada é somente leitura (o Administrador pode reabrir).
+3. **Fechar OS.** A OS vira "Concluída" (com data de fechamento) e o pedido vira "Concluído".
+4. **Equipamento "Em manutenção"** automaticamente quando há OS "Em andamento" para ele; volta a
+   "Ativo" ao concluir (equipamento "Baixado" não muda sozinho e não recebe pedidos).
+5. **Estoque.** *Saída* maior que o saldo é recusada e nada muda. *Entrada* não altera o valor da
+   peça. Excluir um movimento manual estorna o saldo (movimentos criados por uma OS só se desfazem
+   pela própria OS). O saldo da peça é sempre igual à soma das suas movimentações.
+6. **Alertas** (sino): peça abaixo do mínimo, OS aberta há mais de 7 dias (parâmetro
+   `dias_os_atrasada`) e pedido de prioridade Alta sem OS.
+7. **Exclusão com vínculos** não dá erro 500: usuários, fornecedores e prestadores com histórico
+   são **inativados**; equipamentos, peças e departamentos em uso mostram "Não é possível excluir: há N vínculos".
+8. **Auditoria.** Criar, editar, excluir, fechar e mudar status gravam em `historico_alteracoes`
+   (quem, o quê, quando).
+9. **Validações** (sempre no servidor): obrigatórios, e-mail, login único (3 a 50 caracteres, sem
+   espaços), CNPJ com dígito verificador, UF válida, NCM com 8 dígitos, quantidade maior que zero,
+   valores a partir de zero, código de equipamento único.
+10. **Metas e orçamento** ficam na tabela `parametros` (`meta_os_mes`, `orcamento_mes`, `dias_os_atrasada`).
 
 ---
 
-## 10. Trabalhando com Git no VS Code
+## 6. Segurança (o que já vem pronto)
 
-As entregas da Sprint 2 estão na branch **`feat/sprint2-cadastros`**. A `main`
-continua com o CRUD base de Equipamentos até o merge.
+- **SQL parametrizado** (`?`) em todo lugar; a ordenação de listas usa lista de colunas permitidas.
+- **Senhas** com hash (Werkzeug); nunca em texto puro.
+- **Login:** mensagem genérica ("Usuário ou senha inválidos."); 5 falhas seguidas bloqueiam o
+  login por 5 minutos; usuário inativo não entra; sessão nova a cada login.
+- **CSRF:** todo POST exige o token do formulário (campo `csrf_token`).
+- **Recuperação de senha (simulada):** a tela responde sempre a mesma mensagem genérica, exista o login ou não, e
+  **nunca mostra o link**. O link (válido por 30 minutos, de uso único; só o hash do token é guardado) vai
+  apenas para o **log do servidor** (nível INFO, linha "[SIMULADO] Link de redefinição..."). Nos testes
+  (`app.testing = True`) o último link fica em `app.extensions["techmaint_ultimo_link_reset"]` e todos em
+  `app.extensions["techmaint_links_reset"]` (`{login: link}`); fora do modo de teste esses ganchos não existem.
+- **Cabeçalhos** de segurança (inclui `Content-Security-Policy` só com recursos do próprio servidor, sem script inline; `style-src` aceita `unsafe-inline` porque as telas usam atributos `style`), páginas internas sem cache e erros sem *stack trace* na tela.
+- **Exportações** neutralizam fórmulas (`=`, `+`, `-`, `@`) em Excel e CSV.
+- Nenhum segredo no código: a chave da sessão vem do ambiente.
 
-### Abrir o projeto
+---
 
-`Arquivo → Abrir Pasta` e escolha `techmaint`. O painel do Git é o terceiro
-ícone da barra lateral esquerda (três bolinhas ligadas por linhas), atalho
-`Ctrl+Shift+G`.
-
-### Ver em qual branch você está
-
-Canto **inferior esquerdo** da janela. Aparece o nome da branch atual.
-Clicando nele, o VS Code lista as branches e você troca de uma para outra.
-
-> Trocar de branch com alterações não salvas no Git pode dar conflito.
-> Faça commit antes de trocar.
-
-### O ciclo do dia a dia
-
-1. **Edite** os arquivos normalmente.
-2. Abra o painel Git. Os arquivos alterados aparecem em *Changes*.
-3. Clique no nome de um arquivo para ver o que mudou: vermelho é o que saiu,
-   verde é o que entrou.
-4. Passe o mouse no arquivo e clique no **`+`** (*Stage Changes*). Isso
-   escolhe o que entra no commit. Para tudo de uma vez, use o `+` do
-   cabeçalho *Changes*.
-5. Escreva a mensagem na caixa de texto do topo. Frase curta, no presente:
-   `adiciona busca por setor`.
-6. Clique em **Commit**. O commit ficou salvo no seu computador.
-7. Clique em **Sync Changes** (ou `...` → *Push*) para enviar ao GitHub.
-
-Faça um commit por assunto. Vários commits pequenos são muito mais fáceis de
-entender depois do que um commit gigante.
-
-### Fazer o merge de `feat/sprint2-cadastros` na `main`
-
-Quando estiver funcionando e comitado:
-
-1. Canto inferior esquerdo → troque para **`main`**.
-2. `...` (menu do painel Git) → **Pull** — traz o que houver de novo do
-   GitHub.
-3. `...` → **Branch** → **Merge...** → escolha **`feat/sprint2-cadastros`**.
-4. **Sync Changes** para enviar a `main` atualizada.
-
-Em resumo: você fica **na branch que vai receber** e manda trazer a outra.
-
-### Se der conflito
-
-O VS Code marca o arquivo e mostra os botões *Accept Current Change*,
-*Accept Incoming Change* e *Accept Both Changes*. Escolha, salve o arquivo,
-dê *Stage* e faça o commit do merge.
-
-*Current* é a branch em que você está (`main`). *Incoming* é a que está
-chegando (`feat/sprint2-cadastros`).
-
-### Depois do merge
-
-A branch `feat/sprint2-cadastros` pode ser apagada: painel Git → `...` → *Branch* →
-*Delete Branch*. O histórico dos commits continua na `main`.
-
-### Os mesmos comandos pelo terminal
-
-Se quiser entender o que o VS Code faz por baixo:
+## 7. Como testar
 
 ```bash
-git status
-git add .
-git commit -m "adiciona busca por setor"
-git push
-git checkout main
-git merge feat/sprint2-cadastros
-git push
+pip install -r requirements-dev.txt
+pytest -m "not e2e"          # testes de backend (usa o Flask test client)
+playwright install chromium  # uma vez
+pytest -m e2e                # testes de navegador
 ```
+
+Os testes criam um banco temporário próprio (a partir do `seed.py`); o seu `techmaint.db` não é tocado.
+Roteiro manual rápido: entre como `admin`, abra **Pedidos → #1624 → Abrir OS**, lance uma peça, feche
+a OS e veja o estoque, o dashboard e os relatórios mudarem.
+
+---
+
+## 8. Limites conhecidos
+
+- **Idioma:** só português (pt-BR) está disponível; as outras opções aparecem desabilitadas.
+- **E-mail:** não há envio real; a recuperação de senha grava o link apenas no log do servidor (nunca na tela).
+- **SQLite** atende bem uma equipe pequena. Muitos acessos simultâneos de escrita pedem outro banco.
+- Para publicar, use um servidor de verdade (por exemplo `gunicorn app:app`) atrás de HTTPS,
+  com `TECHMAINT_SECRET_KEY` e `TECHMAINT_COOKIE_SEGURO=1`.
+
+---
+
+## 9. Trabalhando com Git
+
+O trabalho está na branch **`feature/sistema-completo`**. Ciclo do dia a dia: editar, `git status`,
+`git add <arquivos>`, `git commit -m "adiciona busca por setor"` (frase curta, no presente) e `git push`.
+Um commit por assunto fica muito mais fácil de entender depois. O arquivo `techmaint.db` **não** vai para
+o Git (está no `.gitignore`): cada pessoa tem o seu.
+
+---
+
+## Publicar no Railway
+
+O projeto já traz `railway.json`, `railway_start.py` e `gunicorn` no `requirements.txt`.
+
+1. Crie um **Volume** no serviço, montado em `/data` (é onde o SQLite fica guardado).
+2. Defina as variáveis do serviço:
+   - `TECHMAINT_DB=/data/techmaint.db`
+   - `TECHMAINT_SECRET_KEY=<texto aleatório longo>`
+   - `TECHMAINT_SENHA_ADMIN=<senha forte, mínimo 10 caracteres>`
+   - `TECHMAINT_COOKIE_SEGURO=1`
+3. Faça o deploy da branch (GitHub) e gere o domínio público em *Settings → Networking*.
+
+No primeiro boot o banco é criado com os dados de demonstração e as senhas de demonstração
+são **substituídas**: `admin` usa `TECHMAINT_SENHA_ADMIN` e os outros usuários recebem senhas
+aleatórias (redefina pela tela *Usuários e Perfis*).

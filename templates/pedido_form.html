@@ -1,0 +1,46 @@
+{#
+  pedido_form.html - abrir / editar pedido de manutencao (Manual 2.1).
+  Contexto: equipamentos, departamentos, prioridades, valores, erros; em edicao tambem `pedido` (ou `item`).
+  Campos enviados: id_equipamento, id_departamento, descricao_problema, prioridade (+ csrf_token).
+  Data da solicitacao e solicitante sao somente leitura (hoje / usuario logado).
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}{{ "Editar pedido" if (pedido or item) else "Novo pedido" }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set reg = pedido or item %}
+{% set f = valores or reg or {} %}
+{% set base = url_for('pedidos.listar') %}
+{% call m.cab_pagina("Editar Pedido " ~ (reg.numero or ('#' ~ reg.id)) if reg else "Novo Pedido de Manutenção", "Descreva o problema para que a equipe técnica possa atender.") %}
+  <a class="btn btn--secundario" href="{{ base ~ '/' ~ reg.id if reg else base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+{% endcall %}
+
+<form method="post" action="{{ base ~ '/' ~ reg.id ~ '/editar' if reg else url_for('pedidos.novo') }}" class="cartao cartao--estreito" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+  <div class="form-grade">
+    {{ m.selecao("id_equipamento", "Equipamento", equipamentos, f, erros, obrigatorio=true, vazio="Selecione o equipamento", largo=true) }}
+    {{ m.selecao("id_departamento", "Departamento solicitante", departamentos, f, erros, obrigatorio=true, vazio="Selecione o departamento") }}
+    {{ m.selecao("prioridade", "Prioridade", prioridades or ['Baixa', 'Média', 'Alta'], f, erros, obrigatorio=true, vazio="Selecione a prioridade", escolhido=(f.prioridade if f.prioridade else 'Média')) }}
+
+    <div class="campo">
+      <label for="data_solicitacao">Data da solicitação</label>
+      <input type="text" id="data_solicitacao" value="{{ f.data_solicitacao or f.data_solicitacao_fmt or (agora.strftime('%d/%m/%Y') if agora is defined and agora is not string and agora else (agora if agora is defined else '')) }}" readonly aria-describedby="data-ajuda">
+      <p class="campo__ajuda" id="data-ajuda">Preenchida automaticamente com a data de hoje.</p>
+    </div>
+    <div class="campo">
+      <label for="solicitante">Solicitante</label>
+      <input type="text" id="solicitante" value="{{ f.solicitante if f.solicitante else (usuario_atual.nome if usuario_atual else '') }}" readonly>
+      <p class="campo__ajuda">Usuário logado.</p>
+    </div>
+
+    {{ m.area("descricao_problema", "Descrição do problema", f, erros, obrigatorio=true, placeholder="Descreva o que está acontecendo, quando começou, sintomas…", linhas=5, maxlength=1000) }}
+  </div>
+  <div class="btn-grupo form-acoes">
+    <button type="submit" class="btn btn--primario btn--grande">{{ icone("save", 16) }} {{ "Salvar alterações" if reg else "Abrir Pedido" }}</button>
+    <a class="btn btn--secundario" href="{{ base ~ '/' ~ reg.id if reg else base }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

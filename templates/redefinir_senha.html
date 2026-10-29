@@ -1,0 +1,42 @@
+{#
+  redefinir_senha.html - define a nova senha a partir do link /redefinir-senha/<token>.
+  Contexto: erro (texto geral, opcional), erros (dict campo->msg, opcional), token_invalido (bool, opcional).
+  Campos enviados: senha, confirmar_senha, csrf_token.
+#}
+{% extends "base_auth.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Redefinir senha · TechMaint{% endblock %}
+
+{% block conteudo %}
+<h1 class="auth__titulo">Redefinir senha</h1>
+{% if token_invalido %}
+  <p class="auth__erro" role="alert">Este link é inválido ou expirou. Solicite um novo.</p>
+  <p class="auth__voltar"><a href="{{ url_for('auth.recuperar_senha') }}">Pedir novo link</a></p>
+{% else %}
+  <p class="auth__sub">Escolha uma nova senha com pelo menos 8 caracteres.</p>
+  <form method="post" class="auth__form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campo">
+      <label for="senha">Nova senha</label>
+      <div class="entrada-icone">
+        {{ icone("lock", 18) }}
+        <input type="password" id="senha" name="senha" minlength="8" autocomplete="new-password" required autofocus
+               {% if erros and erros.senha %}aria-invalid="true" aria-describedby="senha-erro"{% endif %}>
+      </div>
+      {% if erros and erros.senha %}<p class="campo__erro" id="senha-erro">{{ erros.senha }}</p>{% endif %}
+    </div>
+    <div class="campo">
+      <label for="confirmar_senha">Confirmar nova senha</label>
+      <div class="entrada-icone">
+        {{ icone("lock", 18) }}
+        <input type="password" id="confirmar_senha" name="confirmar_senha" minlength="8" autocomplete="new-password" required
+               {% if erros and erros.confirmar_senha %}aria-invalid="true" aria-describedby="conf-erro"{% endif %}>
+      </div>
+      {% if erros and erros.confirmar_senha %}<p class="campo__erro" id="conf-erro">{{ erros.confirmar_senha }}</p>{% endif %}
+    </div>
+    {% if erro %}<p class="auth__erro" role="alert">{{ erro }}</p>{% endif %}
+    <button type="submit" class="btn btn--entrar btn--bloco">SALVAR NOVA SENHA</button>
+  </form>
+  <p class="auth__voltar"><a href="{{ url_for('auth.login') }}">{{ icone("arrow-left", 16) }} Voltar ao login</a></p>
+{% endif %}
+{% endblock %}

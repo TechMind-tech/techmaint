@@ -1,0 +1,16 @@
+# Ambiente virtual
+.venv/
+venv/
+
+# Banco de dados local (cada pessoa tem o seu)
+*.db
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Editor
+.vscode/
+
+# Configuracao local de ferramentas
+.claude/

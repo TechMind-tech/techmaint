@@ -14,3 +14,6 @@ __pycache__/
 
 # Configuracao local de ferramentas
 .claude/
+
+# Screenshots gerados pelos testes E2E (regeneráveis)
+tests/screenshots/

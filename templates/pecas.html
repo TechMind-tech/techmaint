@@ -1,0 +1,131 @@
+{#
+  pecas.html - cadastro + lista de pecas (Figma 11-12, Manual 1.3).
+  Contexto: itens (cada um com `baixo` bool), item, equipamentos, filtro_equipamento, busca, erros, valores.
+  Item: id, nome, id_equipamento, equipamento, ncm, valor_unitario, valor_unitario_fmt, qtde_estoque, estoque_minimo, baixo.
+  Campos do form: codigo (opcional), nome, id_equipamento, valor_unitario, qtde_estoque, ncm, estoque_minimo.
+  "Atualizar estoque" -> POST /pecas/<id>/estoque com o campo nova_quantidade (saldo final) + csrf_token.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Peças · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('pecas.editar') if pode is defined else true %}
+{% set f = valores or item or {} %}
+{% set editando = true if item else false %}
+{% set base = url_for('pecas.listar') %}
+{% set qtde_campo = f.qtde_estoque if f.qtde_estoque is defined else '' %}
+{% if qtde_campo is number and qtde_campo == qtde_campo|int %}{% set qtde_campo = qtde_campo|int %}{% endif %}
+
+{% call m.cab_pagina("Cadastro de Peças", "Peças e componentes vinculados a equipamentos") %}{% endcall %}
+
+<div class="pilha">
+  {% if pode_edit %}
+  <section class="cartao" aria-labelledby="titulo-form">
+    <h2 class="cartao__titulo cartao__titulo--form" id="titulo-form">{{ icone("plus" if not editando else "pencil", 16) }} {{ "Editar peça" if editando else "Nova Peça" }}</h2>
+    {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+
+    <form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if editando else base }}" id="form-peca" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grade form-grade--auto">
+        {{ m.campo("nome", "Nome da Peça", f, erros, obrigatorio=true, placeholder="Ex: Rolamento 6204", classe="campo--dobro", maxlength=200) }}
+        {{ m.campo("codigo", "Código", f, erros, mono=true, placeholder="Gerado automaticamente", maxlength=50, opcional=true, classe="campo--dobro", ajuda="Se ficar em branco, o sistema gera (PEC-0001).") }}
+        {{ m.selecao("id_equipamento", "Equipamento Vinculado", equipamentos, f, erros, obrigatorio=true, vazio="Selecione o equipamento", classe="campo--dobro") }}
+        {{ m.campo("valor_unitario", "Valor Unitário (R$)", f, erros, tipo="number", obrigatorio=true, placeholder="0,00", min=0, step="0.01", inputmode="decimal") }}
+        {{ m.campo("qtde_estoque", "Qtd. em Estoque", {'qtde_estoque': qtde_campo}, erros, tipo="number", obrigatorio=true, placeholder="0", min=0, step="any", inputmode="decimal") }}
+        {{ m.campo("ncm", "NCM", f, erros, placeholder="00000000", mono=true, maxlength=8, inputmode="numeric", pattern="[0-9]{8}", obrigatorio=true, ajuda="8 dígitos, somente números.") }}
+        {{ m.campo("estoque_minimo", "Estoque mínimo", f, erros, tipo="number", placeholder="5", min=0, step=1, inputmode="numeric", opcional=true, ajuda="Abaixo disso a peça aparece como “Baixo”.") }}
+      </div>
+      <div class="btn-grupo form-acoes">
+        <button type="submit" class="btn btn--primario btn--grande btn--cresce">{{ icone("plus" if not editando else "save", 16) }} {{ "Salvar alterações" if editando else "Cadastrar" }}</button>
+        {% if editando %}
+          <button type="submit" class="btn btn--perigo" form="form-excluir-peca">Excluir</button>
+          <a class="btn btn--secundario" href="{{ base }}">Cancelar</a>
+        {% else %}
+          <button type="reset" class="btn btn--perigo">Limpar</button>
+        {% endif %}
+      </div>
+    </form>
+    {% if editando %}
+      <form method="post" action="{{ base }}/{{ item.id }}/excluir" id="form-excluir-peca" data-confirmar='Excluir a peça "{{ item.nome }}"? Esta ação não pode ser desfeita.' data-confirmar-titulo="Confirmar exclusão" data-confirmar-botao="Excluir">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+    <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Lista de Peças Cadastradas</h2></div>
+    <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+      <div class="campo-busca">
+        <label class="sr-only" for="busca">Buscar peça</label>
+        <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar peça…" data-filtrar-tabela="#tabela-pecas">
+      </div>
+      <div>
+        <label class="sr-only" for="filtro-equipamento">Filtrar por equipamento</label>
+        <select id="filtro-equipamento" name="equipamento" data-auto-enviar>
+          <option value="">Todos equipamentos</option>
+          {{ m.opcoes_html(equipamentos, filtro_equipamento) }}
+        </select>
+      </div>
+      <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+    </form>
+
+    {% if itens %}
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de peças">
+      <table class="tabela" id="tabela-pecas">
+        <thead><tr><th>Código</th><th>Nome da peça</th><th>Equipamento</th><th class="col-num">Valor unit.</th><th class="col-num">Em estoque</th><th>NCM</th>{% if pode_edit %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+        <tbody>
+        {% for p in itens %}
+          <tr>
+            <td class="mono nowrap">{{ p.codigo or '—' }}</td>
+            <td class="forte celula-quebra">{{ p.nome }}</td>
+            <td class="celula-quebra">{{ p.equipamento or '—' }}</td>
+            <td class="col-num nowrap">{{ p.valor_unitario_fmt if p.valor_unitario_fmt else p.valor_unitario }}</td>
+            <td class="col-num">
+              <span class="forte{{ ' texto-aviso' if p.baixo }}">{{ p.qtde_fmt if p.qtde_fmt is defined else p.qtde_estoque }}</span>
+              {% if p.baixo %}<span class="aviso-baixo" title="Abaixo do estoque mínimo ({{ p.estoque_minimo }})">{{ icone("alert", 13) }} Baixo</span>{% endif %}
+            </td>
+            <td class="mono">{{ p.ncm or '—' }}</td>
+            {% if pode_edit %}<td class="col-acoes">
+              <a class="btn btn--suave btn--sm" href="{{ base }}/{{ p.id }}/editar" aria-label="Editar {{ p.nome }}">Editar</a>
+              <a class="btn btn--secundario btn--sm" href="{{ base }}/{{ p.id }}/editar#qtde_estoque" data-atualizar-estoque
+                 data-acao="{{ base }}/{{ p.id }}/estoque" data-nome="{{ p.nome }}" data-atual="{{ p.qtde_fmt if p.qtde_fmt is defined else p.qtde_estoque }}" aria-label="Atualizar estoque de {{ p.nome }}">Atualizar estoque</a>
+              {{ m.excluir(base ~ '/' ~ p.id ~ '/excluir', 'Excluir a peça "' ~ p.nome ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ p.nome) }}
+            </td>{% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ m.contagem(itens|length, "peça(s) listada(s)") }}
+    {{ m.paginacao_auto() }}
+    {% else %}
+      {% call m.estado_vazio("Nenhuma peça encontrada", "Ajuste a busca ou o filtro, ou cadastre uma nova peça.", "package") %}
+        {% if busca or filtro_equipamento %}<a class="btn btn--secundario" href="{{ base }}">Limpar filtros</a>{% endif %}
+      {% endcall %}
+    {% endif %}
+  </section>
+</div>
+
+{# ajuste rapido de estoque (aberto por JS; sem JS o botao leva a tela de edicao) #}
+<dialog class="dialogo" id="dialogo-estoque" aria-labelledby="dlg-estoque-titulo">
+  <form method="post" action="" data-form-estoque>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="dialogo__corpo">
+      <h2 class="dialogo__titulo" id="dlg-estoque-titulo">{{ icone("package", 22) }}<span>Atualizar estoque</span></h2>
+      <p class="dialogo__texto" data-estoque-nome></p>
+      <div class="campo" style="margin-top: var(--e4)">
+        <label for="dlg-qtde">Nova quantidade em estoque</label>
+        <input type="number" id="dlg-qtde" name="nova_quantidade" min="0" step="any" inputmode="decimal" required>
+        <p class="campo__ajuda">Será registrada uma movimentação com a diferença.</p>
+      </div>
+    </div>
+    <div class="dialogo__rodape">
+      <button type="button" class="btn btn--secundario" data-fechar-dialogo>Cancelar</button>
+      <button type="submit" class="btn btn--primario">Atualizar</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

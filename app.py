@@ -1,174 +1,276 @@
 """
 app.py
 ------
-O ponto de partida da aplicacao. Aqui a gente:
+A fabrica da aplicacao: `criar_app()` monta o Flask, liga os modulos (Blueprints),
+a seguranca (login, permissoes, CSRF) e as paginas de erro.
 
-  1. cria o app Flask
-  2. registra os MODULOS (cada um com as suas rotas, em modulos/)
-  3. liga o que vale para todas as paginas: usuario logado, CSRF,
-     filtros de formatacao e paginas de erro
-
-As rotas de cada assunto NAO ficam mais aqui: ficam em
-modulos/<assunto>/rotas.py. Isso e o que o README chamava de
-"quando passar de tres ou quatro entidades, vale estudar Blueprints".
+Rota = um endereco do navegador ligado a uma funcao Python. As rotas de cada area
+ficam em `modulos/` (um arquivo por area); aqui ficam so as pecas que valem para o
+sistema inteiro.
 
 Fluxo de uma pagina:
-    navegador -> rota (modulos/x/rotas.py) -> SQL (modulos/x/dados.py) -> banco
-                        |
-                        v
-                 template (templates/x/) -> HTML pronto -> navegador
+    navegador -> before_request (login, CSRF) -> rota (modulos/*.py) -> banco -> template (templates/)
 
 Para rodar:
-    python app.py
+    python seed.py     # (opcional) dados de demonstracao
+    python app.py      # http://127.0.0.1:5000
 """
 
+import logging
 import os
+import secrets
 import sqlite3
+from datetime import timedelta
 
-from flask import Flask, g, jsonify, render_template
+from flask import (Flask, g, jsonify, redirect, render_template, request, session, url_for)
+from jinja2 import TemplateNotFound
+from werkzeug.exceptions import HTTPException
+from werkzeug.routing import IntegerConverter
 
 import database
-import seed
-from modulos.departamentos.rotas import bp as departamentos_bp
-from modulos.fornecedores.rotas import bp as fornecedores_bp
-from modulos.maquinas.rotas import bp as maquinas_bp
-from modulos.pecas import dados as pecas_dados
-from modulos.pecas.rotas import bp as pecas_bp
-from modulos.prestadores.rotas import bp as prestadores_bp
-from modulos.usuarios.rotas import bp as usuarios_bp
-from seguranca import (carregar_usuario_logado, conferir_csrf, eh_api, pode,
-                       requer_login, token_csrf)
-from validadores import formatar_cnpj
+import modulos
+from servicos import alertas as srv_alertas
+from servicos import permissoes as perm
+from servicos import seguranca
+from servicos.formatacao import agora, data_br, iniciais, moeda
 
-app = Flask(__name__)
+log = logging.getLogger("techmaint")
 
-# Chave que assina o cookie da sessao (e por isso o login funciona).
-# Em producao ela vem de uma variavel de ambiente, nunca do codigo.
-app.secret_key = os.environ.get("TECHMAINT_SECRET_KEY", "troque-esta-chave-em-producao")
+# Paginas que podem ser abertas sem login.
+ENDPOINTS_PUBLICOS = {"static", "auth.login", "auth.recuperar_senha", "auth.redefinir_senha"}
 
-# SameSite=Lax: o navegador nao manda o cookie da sessao em POST vindo de
-# outro site. Mais uma camada contra CSRF, junto com o token.
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-# Mantem os campos do JSON na ordem em que foram escritos (nao alfabetica).
-app.json.sort_keys = False
-
-
-# ---------------------------------------------------------------------------
-# 1. Modulos (Blueprints)
-# ---------------------------------------------------------------------------
-app.register_blueprint(usuarios_bp)       # SB-102
-app.register_blueprint(departamentos_bp)  # SB-103 / SB-104
-app.register_blueprint(maquinas_bp)       # SB-103 / SB-104
-app.register_blueprint(pecas_bp)          # SB-105 / SB-106
-app.register_blueprint(fornecedores_bp)   # SB-107 / SB-108
-app.register_blueprint(prestadores_bp)    # SB-109 / SB-110
-
-
-# ---------------------------------------------------------------------------
-# 2. Antes de TODA requisicao
-# ---------------------------------------------------------------------------
-@app.before_request
-def antes_de_cada_requisicao():
-    carregar_usuario_logado()  # preenche g.usuario e g.permissoes
-    return conferir_csrf()     # recusa POST sem token (ou API sem JSON)
-
-
-# ---------------------------------------------------------------------------
-# 3. Coisas disponiveis em TODOS os templates
-# ---------------------------------------------------------------------------
-@app.context_processor
-def variaveis_dos_templates():
-    return {
-        "usuario_logado": g.get("usuario"),
-        "pode": pode,               # {% if pode('maquinas:editar') %}
-    }
-
-
-# csrf_token() vira uma funcao GLOBAL do Jinja (e nao do context_processor)
-# porque as macros de _macros.html tambem precisam dela, e macro importada
-# nao enxerga as variaveis do context_processor.
-app.jinja_env.globals["csrf_token"] = token_csrf
-
-
-@app.template_filter("moeda")
-def filtro_moeda(centavos):
-    """{{ peca.valor_centavos | moeda }}  ->  R$ 1.234,56"""
-    centavos = centavos or 0
-    texto = f"{centavos / 100:,.2f}"  # 1,234.56 (formato americano)
-    # troca , por . e . por , usando um X de "ponte"
-    texto = texto.replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"R$ {texto}"
-
-
-@app.template_filter("cnpj")
-def filtro_cnpj(numeros):
-    """{{ fornecedor.cnpj | cnpj }}  ->  12.345.678/0001-95"""
-    return formatar_cnpj(numeros)
-
-
-# ---------------------------------------------------------------------------
-# 4. Pagina inicial
-# ---------------------------------------------------------------------------
-@app.route("/")
-@requer_login
-def inicio():
-    alertas = pecas_dados.contar_alertas() if pode("pecas:ver") else None
-    return render_template("inicio.html", alertas=alertas)
-
-
-# ---------------------------------------------------------------------------
-# 5. Paginas de erro
-#
-# Na API o erro volta em JSON; nas telas, uma pagina amigavel (nunca o
-# "stack trace", que assusta o usuario e entrega detalhes para atacantes).
-# ---------------------------------------------------------------------------
-MENSAGENS_DE_ERRO = {
-    400: "Requisicao invalida.",
-    403: "Seu perfil nao tem permissao para acessar esta pagina.",
-    404: "Pagina nao encontrada.",
-    405: "Metodo nao permitido para este endereco.",
-    409: "Esta operacao conflita com dados ja cadastrados.",
-    500: "Erro interno. Tente de novo em instantes.",
+TITULOS_ERRO = {
+    400: ("Requisição inválida", "Não foi possível processar o envio. Volte, recarregue a página e tente de novo."),
+    403: ("Acesso negado", "Você não tem permissão para acessar esta página."),
+    404: ("Página não encontrada", "O endereço que você tentou abrir não existe ou foi removido."),
+    405: ("Método não permitido", "Esta página não aceita esse tipo de requisição."),
+    409: ("Conflito de dados", "Os dados enviados conflitam com registros existentes (duplicidade ou vínculo)."),
+    413: ("Envio muito grande", "O conteúdo enviado ultrapassa o tamanho permitido."),
+    500: ("Algo deu errado", "Ocorreu um erro inesperado. Já registramos o problema; tente novamente em instantes."),
 }
 
 
-def responder_erro(codigo, descricao=None):
-    mensagem = descricao or MENSAGENS_DE_ERRO.get(codigo, "Erro.")
-    if eh_api():
-        return jsonify(erro=mensagem), codigo
-    return render_template("erros/erro.html", codigo=codigo, mensagem=mensagem), codigo
+def configurar_logs():
+    """Logs simples no terminal (auditoria e erros). Nao duplica handlers."""
+    raiz = logging.getLogger("techmaint")
+    if not raiz.handlers:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        raiz.addHandler(h)
+        raiz.setLevel(logging.INFO)
+        raiz.propagate = False
 
 
-@app.errorhandler(400)
-@app.errorhandler(403)
-@app.errorhandler(404)
-@app.errorhandler(405)
-def erro_http(erro):
-    # A descricao padrao do Werkzeug vem em ingles; so usamos a nossa
-    # quando a rota passou uma descricao propria no abort(..., description=).
-    padrao = type(erro).description
-    descricao = erro.description if erro.description != padrao else None
-    return responder_erro(erro.code, descricao)
+class IdSeguro(IntegerConverter):
+    """`<int:id>` que recusa numeros maiores que o INTEGER do SQLite (vira 404 em vez de erro 500)."""
+
+    def __init__(self, map, fixed_digits=0, min=None, max=None, signed=False):
+        super().__init__(map, fixed_digits=fixed_digits, min=min, max=2 ** 63 - 1, signed=signed)
 
 
-@app.errorhandler(sqlite3.IntegrityError)
-def erro_integridade(erro):
-    """Rede de seguranca: se alguma regra do banco (UNIQUE, FOREIGN KEY,
-    CHECK) recusar a gravacao e a rota nao tiver tratado antes, mostramos
-    uma mensagem amigavel em vez do erro 500."""
-    return responder_erro(409)
+def criar_app(config=None):
+    """Monta e devolve a aplicacao. `config` (dict) sobrescreve configuracoes — usado nos testes."""
+    configurar_logs()
+    app = Flask(__name__)
+    config = dict(config or {})
+
+    # --- chave secreta: vem do ambiente, nunca do codigo -------------------
+    chave = config.get("SECRET_KEY") or os.environ.get("TECHMAINT_SECRET_KEY")
+    modo_dev = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "on") or config.get("TESTING")
+    if not chave:
+        if modo_dev:
+            chave = "chave-somente-para-desenvolvimento"      # so em modo dev/teste
+        else:
+            chave = secrets.token_hex(32)                      # aleatoria: as sessoes caem ao reiniciar
+            log.warning("TECHMAINT_SECRET_KEY nao definida: usando chave aleatoria (sessoes nao sobrevivem a reinicios).")
+
+    app.config.update(
+        SECRET_KEY=chave,
+        MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=os.environ.get("TECHMAINT_COOKIE_SEGURO") == "1",   # ligar em HTTPS
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),                          # "Lembrar-me"
+        TEMPLATES_AUTO_RELOAD=bool(modo_dev),
+    )
+    app.config.update(config)
+    app.json.ensure_ascii = False
+    app.json.sort_keys = False
+    app.url_map.converters["int"] = IdSeguro      # ids gigantes -> 404
+    app.url_map.merge_slashes = False             # '//' nao e redirecionado: caminho estranho -> 404
+
+    # Garante que o banco existe com as tabelas (idempotente).
+    with app.app_context():
+        database.init_db()
+
+    app.teardown_appcontext(database.fechar_db)
+    app.before_request(antes_da_requisicao)
+    app.after_request(depois_da_requisicao)
+    app.context_processor(contexto_global)
+    registrar_erros(app)
+    modulos.registrar_blueprints(app)
+
+    # Funcoes extras para os templates (alem do contexto acima).
+    app.jinja_env.globals.update(pode=perm.pode, moeda=moeda, data_br=data_br)
+    return app
 
 
-@app.errorhandler(500)
-def erro_interno(erro):
-    return responder_erro(500)
+# ---------------------------------------------------------------------------
+# Antes de cada requisicao: quem e o usuario? pode entrar? o CSRF confere?
+# ---------------------------------------------------------------------------
+def carregar_usuario():
+    """Le o usuario da sessao. Inativo ou apagado = sessao descartada."""
+    g.usuario = None
+    uid = session.get("usuario_id")
+    if not uid:
+        return
+    db = database.get_db()
+    u = db.execute(
+        "SELECT u.id, u.nome, u.login, u.email, u.tema, u.idioma, u.id_departamento, d.nome AS depto "
+        "FROM usuarios u LEFT JOIN departamentos d ON d.id = u.id_departamento "
+        "WHERE u.id = ? AND u.ativo = 1", (uid,)).fetchone()
+    perfis = db.execute("SELECT p.id, p.nome FROM usuarios_perfis up JOIN perfis p ON p.id = up.id_perfil "
+                        "WHERE up.id_usuario = ? ORDER BY p.id", (uid,)).fetchall() if u else []
+    if u is None or not perfis:
+        session.clear()
+        return
+    g.usuario = {
+        "id": u["id"], "nome": u["nome"], "login": u["login"], "email": u["email"],
+        "perfil": perfis[0]["nome"], "id_perfil": perfis[0]["id"], "perfis": [p["nome"] for p in perfis],
+        "depto": u["depto"], "id_departamento": u["id_departamento"],
+        "iniciais": iniciais(u["nome"]), "tema": u["tema"], "idioma": u["idioma"],
+    }
+
+
+def antes_da_requisicao():
+    endpoint = request.endpoint
+    if endpoint == "static":
+        return None
+    carregar_usuario()
+
+    # 1) Login obrigatorio (exceto paginas publicas e URLs que nao existem -> 404)
+    if endpoint is not None and endpoint not in ENDPOINTS_PUBLICOS and g.usuario is None:
+        destino = url_for("auth.login")
+        if request.method == "GET":
+            caminho = request.full_path.rstrip("?")
+            return redirect(url_for("auth.login", proximo=caminho))
+        return redirect(destino)
+
+    # 2) CSRF em todo POST/PUT/PATCH/DELETE
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and endpoint is not None:
+        if not seguranca.csrf_valido():
+            log.warning("CSRF invalido em %s %s", request.method, request.path)
+            return pagina_erro(400, "Sessão expirada ou formulário inválido",
+                               "Não foi possível confirmar a origem do envio (token de segurança). "
+                               "Recarregue a página e tente de novo.")
+    return None
+
+
+# Politica de seguranca de conteudo: tudo so do proprio servidor, sem script inline.
+# 'unsafe-inline' fica SO em style-src porque as telas usam atributos style="..." (barras de progresso etc.);
+# `data:` em img-src por causa do icone SVG embutido no CSS.
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+       "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; "
+       "frame-ancestors 'none'")
+
+
+def depois_da_requisicao(resposta):
+    """Cabecalhos de seguranca e cache (nao guardar paginas internas no navegador)."""
+    resposta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resposta.headers.setdefault("X-Frame-Options", "DENY")
+    resposta.headers.setdefault("Referrer-Policy", "same-origin")
+    resposta.headers.setdefault("Content-Security-Policy", CSP)
+    if request.endpoint != "static":
+        resposta.headers.setdefault("Cache-Control", "no-store")
+    return resposta
+
+
+# ---------------------------------------------------------------------------
+# Variaveis disponiveis em TODOS os templates
+# ---------------------------------------------------------------------------
+def contexto_global():
+    usuario = getattr(g, "usuario", None)
+    endpoint = request.endpoint if request else None
+    menu, alertas = [], {"total": 0, "itens": []}
+    if usuario is not None:
+        try:
+            menu = perm.menu_do_usuario(endpoint)
+            alertas = srv_alertas.calcular(database.get_db(), usuario)
+        except Exception:      # um alerta com problema nao pode derrubar a pagina
+            log.exception("Falha ao montar menu/alertas")
+    return {
+        "usuario_atual": usuario,
+        "menu": menu,
+        "endpoint_atual": endpoint,
+        "alertas": alertas,
+        "csrf_token": seguranca.csrf_token,
+        "tema": (usuario or {}).get("tema") or "claro",
+        "agora": agora(),
+        "permissoes": perm.permissoes_do_usuario(usuario) if usuario else [],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Paginas de erro (sem stack trace para o usuario)
+# ---------------------------------------------------------------------------
+def pagina_erro(codigo, titulo=None, mensagem=None):
+    padrao = TITULOS_ERRO.get(codigo, TITULOS_ERRO[500])
+    titulo = titulo or padrao[0]
+    mensagem = mensagem or padrao[1]
+    quer_json = request.path.startswith("/api/") or \
+        request.accept_mimetypes.best == "application/json"
+    if quer_json:
+        resposta = jsonify({"erro": titulo, "mensagem": mensagem, "codigo": codigo})
+        resposta.status_code = codigo
+        return resposta
+    modelo = {403: "403.html", 400: "403.html", 404: "404.html"}.get(codigo, "500.html")
+    try:
+        return render_template(modelo, codigo=codigo, titulo=titulo, mensagem=mensagem), codigo
+    except TemplateNotFound:
+        pass
+    except Exception:
+        log.exception("Falha ao renderizar a pagina de erro %s", codigo)
+    # Plano B (sem template): HTML minimo, com texto escapado.
+    from markupsafe import escape
+    corpo = (f"<!doctype html><html lang='pt-BR'><meta charset='utf-8'><title>{escape(titulo)}</title>"
+             f"<body style='font-family:sans-serif;margin:3rem'><h1>{escape(titulo)}</h1>"
+             f"<p>{escape(mensagem)}</p><p><a href='/'>Voltar ao início</a></p></body></html>")
+    return corpo, codigo
+
+
+def registrar_erros(app):
+    @app.errorhandler(HTTPException)
+    def erro_http(e):
+        return pagina_erro(e.code or 500)
+
+    @app.errorhandler(sqlite3.IntegrityError)
+    def erro_integridade(e):
+        log.warning("Violacao de integridade: %s", e)
+        return pagina_erro(409)
+
+    @app.errorhandler(Exception)
+    def erro_inesperado(e):
+        # Stack trace so no log; o usuario ve uma pagina amigavel.
+        log.exception("Erro nao tratado em %s %s", request.method, request.path)
+        try:
+            if database.get_db().in_transaction:
+                database.get_db().execute("ROLLBACK")
+        except Exception:
+            pass
+        if app.debug and not app.testing:
+            raise e
+        return pagina_erro(500)
+
+
+# `app` pronto para `flask --app app run`, `python app.py` e para os testes (`import app`).
+app = criar_app()
 
 
 if __name__ == "__main__":
-    # Garante que as tabelas existem e que da para entrar no sistema
-    # (perfis, permissoes e um administrador, se ainda nao houver ninguem).
-    database.criar_tabelas()
-    seed.garantir_acesso_inicial()
-    # debug=True recarrega o servidor a cada alteracao de arquivo e
-    # mostra o erro completo na tela. Use so no seu computador.
-    app.run(debug=True)
+    # Entrada de desenvolvimento. (O link de "Esqueci minha senha" vai so para o log deste terminal.)
+    modo_debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "on")
+    with app.app_context():
+        db = database.get_db()
+        if db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 0:
+            log.warning("Banco vazio: rode `python seed.py` para criar os usuarios de demonstracao.")
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5000)), debug=modo_debug)

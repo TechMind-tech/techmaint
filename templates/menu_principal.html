@@ -1,0 +1,29 @@
+{#
+  menu_principal.html - cartoes de atalho (Manual §5). Contexto: cards (ja filtrados por perfil).
+  Cada card: {chave, rotulo, descricao?, endpoint, icone?}.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Menu principal · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% call m.cab_pagina("Menu principal", "Bem-vindo ao Sistema de Gestão de Manutenção" ~ (", " ~ usuario_atual.nome.split(' ')[0] if usuario_atual else "") ~ ".") %}{% endcall %}
+
+{% if cards %}
+<ul class="menu-cards" role="list">
+  {% for c in cards %}
+    {% set cor = loop.index0 % 6 %}
+    <li>
+      <a class="menu-card menu-card--c{{ cor }}" href="{{ c.url if c.url else url_for(c.endpoint) }}">
+        <span class="menu-card__icone">{{ icone(c.icone or 'layout-dashboard', 34) }}</span>
+        <span class="menu-card__rotulo">{{ c.rotulo }}</span>
+        {% if c.descricao %}<span class="menu-card__desc">{{ c.descricao }}</span>{% endif %}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+  <div class="cartao">{{ m.estado_vazio("Nenhuma área disponível", "Seu perfil ainda não tem acesso a nenhuma área do sistema. Fale com o administrador.", "lock") }}</div>
+{% endif %}
+{% endblock %}

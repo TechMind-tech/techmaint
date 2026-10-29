@@ -1,0 +1,94 @@
+{#
+  dashboard.html - indicadores (Figma 03-04, Manual 3.1).
+  Contexto: kpis, filtros (periodo, departamento_id, equipamento_id), periodos, departamentos, equipamentos, titulo_periodo.
+  Os graficos sao desenhados por static/js/graficos.js com os dados de /api/dashboard
+  (tempo_medio, custo_por_maquina, pecas_mais_usadas, status_ordens, kpis). Cada grafico tem uma tabela alternativa.
+  kpis.cards: [{chave, titulo, valor, valor_fmt, detalhe, cor}] (contrato do Dev); aceita tambem kpis.<chave> simples.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Dashboard · TechMaint{% endblock %}
+
+{% block cabecalho_extra %}
+  <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}" defer></script>
+{% endblock %}
+
+{% block conteudo %}
+{% set fl = filtros or {} %}
+{% set perfil = usuario_atual.perfil if usuario_atual else '' %}
+{% set pode_exportar = pode('dashboard.exportar') if pode is defined else perfil in ('Administrador', 'Gestor') %}
+{% set ver_dinheiro = pode('financeiro.ver') if pode is defined else perfil in ('Administrador', 'Gestor') %}
+{% set periodos_lista = periodos or [('7d', 'Últimos 7 dias'), ('30d', 'Últimos 30 dias'), ('6m', 'Últimos 6 meses'), ('12m', 'Último ano')] %}
+
+{% call m.cab_pagina("Dashboard de Indicadores", titulo_periodo or '') %}
+  {% if pode_exportar %}
+    <a class="btn btn--secundario" href="{{ url_for('painel.exportar_pdf', periodo=fl.periodo, departamento_id=fl.departamento_id, equipamento_id=fl.equipamento_id) }}" data-exportar="pdf">{{ icone("download", 16) }} Exportar PDF</a>
+    <a class="btn btn--verde" href="{{ url_for('painel.exportar_xlsx', periodo=fl.periodo, departamento_id=fl.departamento_id, equipamento_id=fl.equipamento_id) }}" data-exportar="xlsx">{{ icone("file-spreadsheet", 16) }} Exportar Excel</a>
+  {% endif %}
+  <button type="submit" form="form-filtros-dash" class="btn btn--primario">{{ icone("refresh", 16) }} Atualizar</button>
+{% endcall %}
+
+{# ---- filtros ---- #}
+<form method="get" action="{{ url_for('painel.dashboard') }}" id="form-filtros-dash" class="cartao filtros filtros--painel mb" aria-label="Filtros do dashboard" data-dashboard
+      data-api="{{ url_for('painel.api_dashboard') }}">
+  <div class="grupo">
+    <label for="periodo">Período</label>
+    <select id="periodo" name="periodo">{{ m.opcoes_html(periodos_lista, fl.periodo) }}</select>
+  </div>
+  <div class="grupo">
+    <label for="departamento_id">Departamento</label>
+    <select id="departamento_id" name="departamento_id">
+      <option value="">Todos</option>
+      {{ m.opcoes_html(departamentos, fl.departamento_id) }}
+    </select>
+  </div>
+  <div class="grupo">
+    <label for="equipamento_id">Equipamento</label>
+    <select id="equipamento_id" name="equipamento_id">
+      <option value="">Todos</option>
+      {{ m.opcoes_html(equipamentos, fl.equipamento_id) }}
+    </select>
+  </div>
+</form>
+
+<p class="sr-only" role="status" aria-live="polite" data-status-dash></p>
+
+{# ---- KPIs ---- #}
+{% set icones_cor = {'marinho': 'clipboard-list', 'laranja': 'settings', 'verde': 'check-circle', 'ciano': 'banknote'} %}
+<div class="grade grade--4 grade--kpi mb" role="group" aria-label="Indicadores principais">
+  {% if kpis and kpis.cards %}
+    {# lista pronta do backend (o card de custo ja some para quem nao ve financeiro) #}
+    {% for c in kpis.cards %}
+      {{ m.kpi(c.chave, c.titulo, (c.valor_fmt if c.valor_fmt is not none and c.valor_fmt != '' else c.valor), c.detalhe or '', c.cor or 'marinho', icones_cor.get(c.cor, 'clipboard-list')) }}
+    {% endfor %}
+  {% else %}
+    {% set defs = [
+      ('pedidos_abertos', 'Pedidos Abertos', 'marinho', 'clipboard-list'),
+      ('os_andamento', 'OS em Andamento', 'laranja', 'settings'),
+      ('os_concluidas', 'OS Concluídas/Mês', 'verde', 'check-circle'),
+      ('custo_total', 'Custo Total do Mês', 'ciano', 'banknote') ] %}
+    {% for chave, rotulo, cor, ic in defs %}
+      {% if chave != 'custo_total' or ver_dinheiro %}
+        {% set k = kpis[chave] if kpis and kpis[chave] is defined else none %}
+        {% if k is mapping %}{% set val = k.valor_fmt if k.valor_fmt else k.valor %}{% set det = k.detalhe %}{% else %}{% set val = k %}{% set det = '' %}{% endif %}
+        {{ m.kpi(chave, rotulo, val if val is not none else '—', det or '', cor, ic) }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>
+
+<noscript><p class="aviso aviso--info">{{ icone("info", 18) }}<span class="aviso__texto">Os gráficos precisam de JavaScript. Os números principais continuam disponíveis acima.</span></p></noscript>
+
+{# ---- graficos ---- #}
+<div class="grade grade--2 graficos">
+  {{ m.grafico("tempo_medio", "Tempo Médio de Atendimento (horas)", "Mês", "Horas") }}
+  {% if ver_dinheiro %}{{ m.grafico("custo_por_maquina", "Custo por Máquina (R$)", "Máquina", "Custo (R$)") }}{% endif %}
+  {{ m.grafico("pecas_mais_usadas", "Peças Mais Utilizadas", "Peça", "Quantidade") }}
+  {{ m.grafico("status_ordens", "Status das Ordens", "Status", "Ordens") }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/graficos.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{#
+  usuarios.html - cadastro + lista de usuarios (Figma 05-08, Manual 1.1).
+  Contexto: itens, item (em edicao), perfis, departamentos, contagem_perfis, filtro_perfil, busca, erros, valores.
+  Item: id, nome, login, email, perfil, id_perfil, departamento, id_departamento, ativo, data_cadastro_fmt, data_cadastro_iso.
+  Campos do form: nome, login, email, data_cadastro, senha, id_perfil, id_departamento, ativo.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Usuários e Perfis · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set f = valores or item or {} %}
+{% set editando = true if item else false %}
+{% set base = url_for('usuarios.listar') %}
+
+{% call m.cab_pagina("Cadastro de Usuários e Perfis", "Controle de acesso por perfil") %}{% endcall %}
+
+{# ---- contagem por perfil (aceita dict {nome: n} ou lista de {nome, total}) ---- #}
+{% set cores_perfil = {'Administrador': 'vermelho', 'Técnico': 'ciano', 'Gestor': 'verde', 'Usuário Comum': 'laranja'} %}
+<div class="grade grade--4 grade--kpi mb" aria-label="Usuários por perfil" role="group">
+  {% if contagem_perfis is mapping %}
+    {% for nome, total in contagem_perfis.items() %}
+      {{ m.contador(total, nome, cores_perfil.get(nome, 'ciano'), sub="usuário" if total == 1 else "usuários") }}
+    {% endfor %}
+  {% else %}
+    {% for c in (contagem_perfis or []) %}
+      {{ m.contador(c.total if c.total is defined else c.qtd, c.nome, cores_perfil.get(c.nome, 'ciano'), sub="usuário" if (c.total if c.total is defined else c.qtd) == 1 else "usuários") }}
+    {% endfor %}
+  {% endif %}
+</div>
+
+<div class="pilha">
+  {# ---------------- formulario ---------------- #}
+  <section class="cartao" aria-labelledby="titulo-form">
+    <h2 class="cartao__titulo cartao__titulo--form" id="titulo-form">{{ icone("plus" if not editando else "pencil", 16) }} {{ "Editar usuário" if editando else "Novo Usuário" }}</h2>
+
+    {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+
+    <form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if editando else base }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grade form-grade--auto">
+        {{ m.campo("nome", "Nome", f, erros, obrigatorio=true, placeholder="Nome completo", maxlength=120, autocomplete="off") }}
+        {{ m.campo("login", "Login", f, erros, obrigatorio=true, placeholder="nome.sobrenome", mono=true, maxlength=50, autocomplete="off", autocapitalize="none", spellcheck="false", ajuda="3 a 50 caracteres, sem espaços.") }}
+        {{ m.campo("email", "E-mail", f, erros, tipo="email", obrigatorio=true, placeholder="email@empresa.com", maxlength=160, autocomplete="off") }}
+
+        {% set data_val = f.data_cadastro if f.data_cadastro else (f.data_cadastro_iso if f.data_cadastro_iso else '') %}
+        {{ m.campo("data_cadastro", "Data de Cadastro", {'data_cadastro': data_val}, erros, tipo="date", ajuda="Se ficar em branco, usamos a data de hoje.") }}
+
+        {% if editando %}
+          {{ m.campo("senha", "Nova senha", f, erros, tipo="password", placeholder="Deixe em branco para manter", autocomplete="new-password", ajuda="Preencha só se quiser trocar a senha (mín. 8 caracteres).") }}
+        {% else %}
+          {{ m.campo("senha", "Senha", f, erros, tipo="password", obrigatorio=true, placeholder="Senha segura", minlength=8, autocomplete="new-password", ajuda="Mínimo de 8 caracteres.") }}
+        {% endif %}
+
+        {{ m.selecao("id_perfil", "Perfil de Acesso", perfis, f, erros, obrigatorio=true, vazio="Selecione o perfil", **{'data-perfil-select': '1'}) }}
+        <p class="campo__ajuda campo__ajuda--solta campo--largo" data-perfil-ajuda aria-live="polite">O perfil define o que o usuário pode acessar no sistema.</p>
+
+        {{ m.selecao("id_departamento", "Departamento", departamentos, f, erros, vazio="Sem departamento", opcional=true) }}
+        {{ m.marcador("ativo", "Usuário Ativo", marcado=(f.ativo in (1, '1', true, 'on', 'true')) if (valores or editando) else true) }}
+      </div>
+
+      <div class="btn-grupo form-acoes">
+        <button type="submit" class="btn btn--primario btn--grande">{{ icone("plus" if not editando else "save", 16) }} {{ "Salvar alterações" if editando else "Cadastrar" }}</button>
+        {% if editando %}<a class="btn btn--secundario" href="{{ base }}">Cancelar</a>{% endif %}
+      </div>
+    </form>
+  </section>
+
+  {# ---------------- lista ---------------- #}
+  <section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+    <div class="cartao__cab">
+      <h2 class="cartao__titulo" id="titulo-lista">Lista de Usuários</h2>
+    </div>
+    <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+      <div class="campo-busca">
+        <label class="sr-only" for="busca">Buscar usuário</label>
+        <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar nome, login ou e-mail…" data-filtrar-tabela="#tabela-usuarios">
+      </div>
+      <div>
+        <label class="sr-only" for="filtro-perfil">Filtrar por perfil</label>
+        <select id="filtro-perfil" name="perfil" data-auto-enviar>
+          <option value="">Todos os perfis</option>
+          {{ m.opcoes_html(perfis, filtro_perfil) }}
+        </select>
+      </div>
+      <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+    </form>
+
+    {% if itens %}
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de usuários">
+      <table class="tabela tabela--compacta" id="tabela-usuarios">
+        <thead><tr><th>ID</th><th>Nome</th><th>Login</th><th>E-mail</th><th>Perfil</th><th>Depto</th><th>Cadastro</th><th>Status</th><th class="col-acoes"><span class="sr-only">Ações</span></th></tr></thead>
+        <tbody>
+        {% for u in itens %}
+          <tr>
+            <td class="mudo">{{ u.id }}</td>
+            <td class="forte celula-quebra">{{ u.nome }}</td>
+            <td class="mono">{{ u.login }}</td>
+            <td class="nowrap">{{ u.email }}</td>
+            <td>{{ m.badge(u.perfil) }}</td>
+            <td class="celula-curta">{{ u.departamento or '—' }}</td>
+            <td class="nowrap">{{ u.data_cadastro_fmt or '—' }}</td>
+            <td>{{ m.badge('Ativo' if u.ativo else 'Inativo') }}</td>
+            <td class="col-acoes">
+              <a class="btn btn--suave btn--sm" href="{{ base }}/{{ u.id }}/editar" aria-label="Editar {{ u.nome }}">Editar</a>
+              {{ m.excluir(base ~ '/' ~ u.id ~ '/excluir', 'Excluir o usuário "' ~ u.nome ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ u.nome) }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ m.contagem(itens|length, "usuário(s) encontrado(s)") }}
+    {{ m.paginacao_auto() }}
+    {% else %}
+      {% call m.estado_vazio("Nenhum usuário encontrado", "Ajuste a busca ou o filtro, ou cadastre um novo usuário ao lado.", "users") %}
+        {% if busca or filtro_perfil %}<a class="btn btn--secundario" href="{{ base }}">Limpar filtros</a>{% endif %}
+      {% endcall %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

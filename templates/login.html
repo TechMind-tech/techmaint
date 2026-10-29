@@ -1,0 +1,49 @@
+{#
+  login.html - tela de entrada (Figma 01/02).
+  Contexto: erro (texto), proximo (URL de retorno), valores.usuario.
+  Campos enviados (POST /login): usuario, senha, lembrar, proximo, csrf_token.
+#}
+{% extends "base_auth.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Entrar · TechMaint{% endblock %}
+
+{% block marca %}<h1 class="auth__nome">TechMaint<span class="sr-only"> — Entrar</span></h1>{% endblock %}
+
+{% block conteudo %}
+<p class="auth__sub">Faça login para continuar</p>
+
+<form method="post" action="{{ url_for('auth.login') }}" class="auth__form" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if proximo %}<input type="hidden" name="proximo" value="{{ proximo }}">{% endif %}
+
+  <div class="campo">
+    <label for="usuario">Usuário</label>
+    <div class="entrada-icone">
+      {{ icone("user", 18) }}
+      <input type="text" id="usuario" name="usuario" value="{{ valores.usuario if valores and valores.usuario else '' }}"
+             placeholder="Digite seu usuário" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus
+             {% if erro %}aria-invalid="true" aria-describedby="login-erro"{% endif %}>
+    </div>
+  </div>
+
+  <div class="campo">
+    <label for="senha">Senha</label>
+    <div class="entrada-icone">
+      {{ icone("lock", 18) }}
+      <input type="password" id="senha" name="senha" placeholder="Digite sua senha" autocomplete="current-password"
+             {% if erro %}aria-invalid="true" aria-describedby="login-erro"{% endif %}>
+    </div>
+  </div>
+
+  <div class="auth__linha">
+    <label class="marcador" for="lembrar"><input type="checkbox" id="lembrar" name="lembrar" value="1"> Lembrar-me</label>
+    <a href="{{ url_for('auth.recuperar_senha') }}">Esqueceu a senha?</a>
+  </div>
+
+  {% if erro %}
+    <p class="auth__erro" id="login-erro" role="alert">{{ erro }}</p>
+  {% endif %}
+
+  <button type="submit" class="btn btn--entrar btn--bloco">ENTRAR</button>
+</form>
+{% endblock %}

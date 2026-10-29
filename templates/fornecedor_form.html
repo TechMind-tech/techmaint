@@ -1,0 +1,37 @@
+{#
+  fornecedor_form.html - novo/editar fornecedor (Manual 1.4).
+  Contexto: item (None = novo), erros, valores, ufs.
+  Campos: razao_social, fantasia, cnpj, inscricao_estadual, telefone, email, cep, logradouro, numero,
+          complemento, bairro, municipio, uf, ativo.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% import "_form_empresa.html" as fe with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}{{ "Editar fornecedor" if item else "Novo fornecedor" }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set f = valores or (dict(item, cnpj=item.cnpj_fmt, cep=item.cep_fmt) if item else {}) %}
+{% set base = url_for('fornecedores.listar') %}
+{% call m.cab_pagina("Editar Fornecedor" if item else "Novo Fornecedor", "Dados cadastrais do fornecedor") %}
+  <a class="btn btn--secundario" href="{{ base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+{% endcall %}
+
+<form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if item else base ~ '/novo' }}" class="cartao" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+  {{ fe.campos(f, erros, ufs) }}
+  <div class="btn-grupo form-acoes">
+    <button type="submit" class="btn btn--primario btn--grande">{{ icone("save", 16) }} Salvar</button>
+    <a class="btn btn--secundario" href="{{ base }}">Cancelar</a>
+    {% if item %}
+      <button type="submit" class="btn btn--perigo" form="form-excluir">Excluir</button>
+    {% endif %}
+  </div>
+</form>
+{% if item %}
+  <form method="post" action="{{ base }}/{{ item.id }}/excluir" id="form-excluir" data-confirmar='Excluir o fornecedor "{{ item.razao_social }}"? Esta ação não pode ser desfeita.' data-confirmar-titulo="Confirmar exclusão" data-confirmar-botao="Excluir">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  </form>
+{% endif %}
+{% endblock %}

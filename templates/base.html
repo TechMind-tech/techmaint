@@ -1,177 +1,153 @@
 <!DOCTYPE html>
 {#
-  base.html
-  ---------
-  O "molde" das paginas. Barra lateral, barra do topo, avisos e rodape
-  ficam aqui uma vez so. Cada pagina filha comeca com
-  {% extends "base.html" %} e preenche o bloco `conteudo`.
+  base.html - moldura de todas as telas internas (barra lateral + cabecalho).
+  Cada tela filha faz:  {% extends "base.html" %}  e preenche os blocos
+  `titulo` (texto da aba do navegador) e `conteudo`.  Opcional: `scripts` (JS da pagina).
 
-  Estrutura visual (a mesma do desenho no Figma):
-
-      +----------------+--------------------------------+
-      | barra lateral  | barra do topo                  |
-      | (menu escuro)  +--------------------------------+
-      |                | conteudo da pagina             |
-      +----------------+--------------------------------+
-
-  A casca so aparece para quem esta logado. A tela de login usa o mesmo
-  molde, mas sem menu nenhum em volta: por isso o `{% if usuario_logado %}`
-  envolve a estrutura inteira.
-
-  Continua valendo:
-  - o menu so mostra o que o PERFIL da pessoa pode ver: pode('x:ver').
-    Isso e so conforto visual. A seguranca de verdade esta na rota
-    (@requer_permissao), porque qualquer um pode digitar a URL na mao.
-  - o botao Sair e um formulario POST com o token CSRF.
-
-  Este bloco e um comentario do Jinja (chave-cerquilha), porque cita tags.
-  Dentro de comentario HTML o Jinja AINDA executaria as tags.
+  Variaveis que o backend injeta em TODAS as telas (context_processor):
+    usuario_atual, menu, endpoint_atual, alertas, csrf_token(), tema, agora.
 #}
-<html lang="pt-BR">
+{% from "_icones.html" import icone %}
+{% set tema_ativo = tema if tema in ('claro', 'escuro') else 'claro' %}
+<html lang="pt-BR" data-theme="{{ tema_ativo }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="{{ 'dark' if tema_ativo == 'escuro' else 'light' }}">
   <title>{% block titulo %}TechMaint{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/componentes.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/paginas.css') }}">
+  {# marca a pagina como "com JavaScript" antes de pintar (evita piscar) #}
+  <script src="{{ url_for('static', filename='js/pre.js') }}"></script>
+  {% block cabecalho_extra %}{% endblock %}
 </head>
-{# A classe do body troca o fundo: azul na tela de login, cinza no resto. #}
-<body class="{% if usuario_logado %}tela-sistema{% else %}tela-livre{% endif %}">
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
 
-{#
-  O checkbox abaixo abre e fecha o menu no celular. Ele fica escondido;
-  quem aparece e o <label> la na barra do topo. Como o CSS consegue ver
-  "checkbox marcado -> mostra o menu", o menu funciona sem JavaScript.
-  Precisa estar ANTES da barra lateral para o seletor ~ funcionar.
-#}
-{% if usuario_logado %}<input type="checkbox" id="abrir-menu" class="abrir-menu">{% endif %}
-
-  <div class="app {% if not usuario_logado %}app--livre{% endif %}">
-
-  {% if usuario_logado %}
-
-    <aside class="barra-lateral">
-      <a class="marca" href="{{ url_for('inicio') }}">
-        <span class="marca__icone" aria-hidden="true">
-          {# SVG escrito aqui dentro mesmo: e um icone so, nao vale a pena
-             um arquivo separado e mais um pedido ao servidor. #}
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="3.2"></circle>
-            <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4L16.5 7.5M7.5 16.5l-2.1 2.1"></path>
-          </svg>
+  <div class="app" data-app>
+    {# ---------------- barra lateral ---------------- #}
+    <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+      <a class="sidebar__marca" href="{{ url_for('painel.menu_principal') }}">
+        <span class="sidebar__logo">{{ icone("settings", 22) }}</span>
+        <span>
+          <span class="sidebar__nome">TechMaint</span>
+          {% if usuario_atual %}
+            {% if usuario_atual.perfil == 'Administrador' %}<span class="selo">Admin</span>
+            {% else %}<span class="selo selo--neutro">{{ usuario_atual.perfil }}</span>{% endif %}
+          {% endif %}
         </span>
-        <span class="marca__texto">TechMaint</span>
       </a>
+      <button type="button" class="icone-btn sidebar__fechar" data-menu-fechar aria-label="Fechar menu">{{ icone("x", 20) }}</button>
 
-      {#
-        Menu agrupado igual ao Figma: PRINCIPAL e CADASTROS. O grupo de
-        cadastros so aparece se a pessoa puder ver pelo menos um item,
-        senao sobraria um titulo solto sem nada embaixo.
-      #}
-      <nav class="menu">
-        <p class="menu__grupo">Principal</p>
-
-        {# request.endpoint e request.blueprint dizem onde a pessoa esta
-           agora. E isso que acende o item certo do menu. #}
-        <a class="menu__item {% if request.endpoint == 'inicio' %}menu__item--ativo{% endif %}"
-           href="{{ url_for('inicio') }}">Dashboard</a>
-
-        {% if pode('usuarios:ver') or pode('maquinas:ver') or pode('pecas:ver')
-              or pode('fornecedores:ver') or pode('prestadores:ver') or pode('departamentos:ver') %}
-          <p class="menu__grupo">Cadastros</p>
-
-          {% if pode('usuarios:ver') %}
-            <a class="menu__item {% if request.blueprint == 'usuarios' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('usuarios.listar') }}">Usuarios e Perfis</a>
-          {% endif %}
-          {% if pode('maquinas:ver') %}
-            <a class="menu__item {% if request.blueprint == 'maquinas' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('maquinas.listar') }}">Equipamentos</a>
-          {% endif %}
-          {% if pode('pecas:ver') %}
-            <a class="menu__item {% if request.blueprint == 'pecas' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('pecas.listar') }}">Pecas</a>
-          {% endif %}
-          {% if pode('fornecedores:ver') %}
-            <a class="menu__item {% if request.blueprint == 'fornecedores' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('fornecedores.listar') }}">Fornecedores</a>
-          {% endif %}
-          {% if pode('prestadores:ver') %}
-            <a class="menu__item {% if request.blueprint == 'prestadores' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('prestadores.listar') }}">Prestadores de Servico</a>
-          {% endif %}
-          {% if pode('departamentos:ver') %}
-            <a class="menu__item {% if request.blueprint == 'departamentos' %}menu__item--ativo{% endif %}"
-               href="{{ url_for('departamentos.listar') }}">Departamentos</a>
-          {% endif %}
-        {% endif %}
+      <nav class="sidebar__nav" aria-label="Seções do sistema">
+        {% for secao in (menu or []) %}
+          <p class="sidebar__secao" id="secao-{{ loop.index }}">{{ secao.secao }}</p>
+          <ul class="sidebar__lista" aria-labelledby="secao-{{ loop.index }}">
+            {% for item in secao.itens %}
+              {# destaca o item quando a tela atual pertence ao mesmo modulo (ex.: pedidos.detalhe -> Pedidos) #}
+              {% set ativo = endpoint_atual and (endpoint_atual == item.endpoint or endpoint_atual.split('.')[0] == item.endpoint.split('.')[0]) %}
+              <li>
+                <a class="sidebar__link" href="{{ url_for(item.endpoint) }}"{% if ativo %} aria-current="page"{% endif %}>
+                  {{ icone(item.icone, 18) }}<span>{{ item.rotulo }}</span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endfor %}
       </nav>
 
-      <p class="barra-lateral__rodape">TechMaint v1.0</p>
+      <div class="sidebar__rodape">TechMaint v1.0</div>
     </aside>
-  {% endif %}
+    <div class="app__fundo" data-menu-fechar aria-hidden="true"></div>
 
-    <div class="painel">
+    <div class="app__main">
+      {# ---------------- cabecalho ---------------- #}
+      <header class="topbar">
+        <button type="button" class="icone-btn" data-menu-botao aria-controls="sidebar" aria-expanded="false" aria-label="Abrir ou fechar o menu">{{ icone("menu", 22) }}</button>
+        <div class="topbar__espaco"></div>
 
-    {% if usuario_logado %}
-      <header class="barra-topo">
-        {# O label e o "botao hamburguer". No computador o CSS esconde ele. #}
-        <label class="botao-menu" for="abrir-menu" aria-label="Abrir menu">
-          <span></span><span></span><span></span>
-        </label>
+        {# sino de alertas #}
+        {% set total_alertas = alertas.total if alertas else 0 %}
+        <details class="suspenso" data-suspenso>
+          <summary class="icone-btn" aria-label="Alertas: {{ total_alertas }} {{ 'pendente' if total_alertas == 1 else 'pendentes' }}">
+            {{ icone("bell", 21) }}
+            {% if total_alertas %}<span class="icone-btn__ponto" aria-hidden="true">{{ total_alertas if total_alertas < 100 else '99+' }}</span>{% endif %}
+          </summary>
+          <div class="suspenso__painel">
+            <p class="suspenso__titulo">Alertas</p>
+            {% if alertas and alertas.itens %}
+              {% for a in alertas['itens'] %}
+                <a class="suspenso__item" href="{{ a.url or '#' }}"><span class="alerta-tipo" aria-hidden="true"></span><span>{{ a.texto }}</span></a>
+              {% endfor %}
+            {% else %}
+              <p class="suspenso__vazio">Nenhum alerta no momento.</p>
+            {% endif %}
+          </div>
+        </details>
 
-        <div class="sessao">
-          <span class="sessao__nome">{{ usuario_logado.nome }}</span>
-
-          {# Iniciais do nome no circulo, igual ao Figma. O aria-hidden
-             existe porque o nome ja esta escrito do lado: para quem usa
-             leitor de tela, repetir as iniciais so atrapalha. #}
-          <span class="avatar" aria-hidden="true">{{ usuario_logado.nome[:2] | upper }}</span>
-
-          <form method="POST" action="{{ url_for('usuarios.logout') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="botao botao--neutro botao--pequeno" type="submit">Sair</button>
-          </form>
-        </div>
+        {# usuario #}
+        {% if usuario_atual %}
+        <details class="suspenso" data-suspenso>
+          <summary class="usuario-chip">
+            <span class="avatar" aria-hidden="true">{{ usuario_atual.iniciais }}</span>
+            <span class="usuario-chip__texto">
+              <span class="usuario-chip__nome">{{ usuario_atual.nome }}</span>
+              <span class="usuario-chip__perfil{{ ' usuario-chip__perfil--admin' if usuario_atual.perfil == 'Administrador' }}">{{ usuario_atual.perfil }}</span>
+            </span>
+            <span class="sr-only">Menu do usuário</span>
+            {{ icone("chevron-down", 16) }}
+          </summary>
+          <div class="suspenso__painel">
+            <p class="suspenso__titulo">{{ usuario_atual.login }}{% if usuario_atual.depto %} · {{ usuario_atual.depto }}{% endif %}</p>
+            <a class="suspenso__item" href="{{ url_for('painel.menu_principal') }}">{{ icone("home", 18) }}Menu principal</a>
+            <a class="suspenso__item" href="{{ url_for('configuracoes.pagina') }}">{{ icone("settings-2", 18) }}Configurações</a>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+              <button type="submit" class="suspenso__item">{{ icone("log-out", 18) }}Sair</button>
+            </form>
+          </div>
+        </details>
+        {% endif %}
       </header>
-    {% endif %}
 
-      {#
-        O bloco `conteudo` aparece UMA vez so no arquivo. Se voce escrever
-        ele duas vezes (uma para quem esta logado e outra para quem nao
-        esta), o Jinja para tudo com "block 'conteudo' defined twice".
-        Por isso o if/else envolve so a casca, nunca o miolo.
-      #}
-      <main class="conteudo {% if not usuario_logado %}conteudo--livre{% endif %}">
-        {% with mensagens = get_flashed_messages(with_categories=true) %}
-          {% for categoria, texto in mensagens %}
-            <p class="aviso aviso--{{ categoria }}" role="status">{{ texto }}</p>
-          {% endfor %}
-        {% endwith %}
+      <main class="conteudo" id="conteudo" tabindex="-1">
+        {# avisos (flash): o contêiner sempre existe para o leitor de tela anunciar mensagens novas #}
+        <div class="avisos" role="status" aria-live="polite" data-avisos>
+          {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% for categoria, texto in mensagens %}
+              {% set cat = categoria if categoria in ('sucesso', 'erro', 'aviso', 'info') else 'info' %}
+              <div class="aviso aviso--{{ cat }}"{% if cat == 'erro' %} role="alert"{% endif %}>
+                {{ icone({'sucesso': 'check-circle', 'erro': 'alert-circle', 'aviso': 'alert', 'info': 'info'}[cat], 18) }}
+                <p class="aviso__texto">{{ texto }}</p>
+                <button type="button" class="aviso__fechar" data-fechar-aviso aria-label="Dispensar aviso">{{ icone("x", 16) }}</button>
+              </div>
+            {% endfor %}
+          {% endwith %}
+        </div>
 
         {% block conteudo %}{% endblock %}
       </main>
-
-    {% if usuario_logado %}
-      <footer class="rodape">TechMaint - manutencao predial e de maquinas</footer>
-    {% endif %}
+      <footer class="rodape-app">Desenvolvido em Python · TechMaint v1.0</footer>
     </div>
   </div>
 
-  {#
-    Confirmacao antes de apagar/desativar. Todo <form data-confirmar="...">
-    pergunta antes de enviar; se a pessoa clicar em Cancelar, nada acontece.
-    Um script so para o sistema inteiro, em vez de um onsubmit em cada linha
-    (e o texto fica protegido pelo escape automatico do Jinja).
-  #}
-  <script>
-    document.addEventListener("submit", function (evento) {
-      var mensagem = evento.target.dataset.confirmar;
-      if (mensagem && !window.confirm(mensagem)) {
-        evento.preventDefault();
-      }
-    });
-  </script>
+  {# dialogo unico de confirmacao, reutilizado por todos os botoes de excluir/cancelar #}
+  <dialog class="dialogo" id="dialogo-confirmar" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+    <div class="dialogo__corpo">
+      <h2 class="dialogo__titulo" id="dialogo-titulo">{{ icone("alert", 22) }}<span data-dialogo-titulo>Confirmar</span></h2>
+      <p class="dialogo__texto" id="dialogo-texto" data-dialogo-texto></p>
+    </div>
+    <div class="dialogo__rodape">
+      <button type="button" class="btn btn--secundario" data-dialogo-voltar autofocus>Voltar</button>
+      <button type="button" class="btn btn--perigo-solido" data-dialogo-ok>Confirmar</button>
+    </div>
+  </dialog>
 
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

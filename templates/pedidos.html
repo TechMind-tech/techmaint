@@ -1,0 +1,92 @@
+{#
+  pedidos.html - lista de pedidos de manutencao (Figma 16, Manual 2.1).
+  Contexto: itens, contadores (aberto, andamento, concluido, cancelado), busca, status, prioridade, departamento_id,
+            equipamentos, departamentos, prioridades.
+  Item: id, equipamento, departamento, solicitante, prioridade, status, data_solicitacao_fmt, os_id/os_numero (opcional).
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Pedidos de Manutenção · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set base = url_for('pedidos.listar') %}
+{% set c = contadores or {} %}
+{% set status_lista = status_opcoes or ['Aberto', 'Em andamento', 'Concluído', 'Cancelado'] %}
+{% set prior_lista = prioridades or ['Baixa', 'Média', 'Alta'] %}
+{% set filtrando = busca or status or prioridade or departamento_id %}
+
+{% call m.cab_pagina("Pedidos de Manutenção", "Todos os pedidos") %}
+  <a class="btn btn--primario" href="{{ url_for('pedidos.novo') }}">{{ icone("plus", 16) }} Novo Pedido</a>
+{% endcall %}
+
+<div class="grade grade--4 grade--kpi mb" role="group" aria-label="Pedidos por status">
+  {{ m.contador(c.aberto or 0, "Abertos", "ciano", vertical=true) }}
+  {{ m.contador(c.andamento or 0, "Em Andamento", "laranja", vertical=true) }}
+  {{ m.contador(c.concluido or 0, "Concluídos", "verde", vertical=true) }}
+  {{ m.contador(c.cancelado or 0, "Cancelados", "vermelho", vertical=true) }}
+</div>
+
+<section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+  <h2 class="sr-only" id="titulo-lista">Lista de pedidos</h2>
+  <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+    <div class="campo-busca">
+      <label class="sr-only" for="busca">Buscar pedido</label>
+      <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar equipamento, solicitante…" data-filtrar-tabela="#tabela-pedidos">
+    </div>
+    <div>
+      <label class="sr-only" for="f-status">Status</label>
+      <select id="f-status" name="status" data-auto-enviar>
+        <option value="">Todos status</option>
+        {{ m.opcoes_html(status_lista, status) }}
+      </select>
+    </div>
+    <div>
+      <label class="sr-only" for="f-prioridade">Prioridade</label>
+      <select id="f-prioridade" name="prioridade" data-auto-enviar>
+        <option value="">Todas prioridades</option>
+        {{ m.opcoes_html(prior_lista, prioridade) }}
+      </select>
+    </div>
+    <div>
+      <label class="sr-only" for="f-depto">Departamento</label>
+      <select id="f-depto" name="departamento_id" data-auto-enviar>
+        <option value="">Todos departamentos</option>
+        {{ m.opcoes_html(departamentos, departamento_id) }}
+      </select>
+    </div>
+    <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+  </form>
+
+  {% if itens %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de pedidos de manutenção">
+    <table class="tabela" id="tabela-pedidos">
+      <thead><tr><th>Nº</th><th>Equipamento</th><th>Departamento</th><th>Solicitante</th><th>Prioridade</th><th>Status</th><th>Data</th><th class="col-acoes"><span class="sr-only">Ações</span></th></tr></thead>
+      <tbody>
+      {% for p in itens %}
+        <tr>
+          <td class="mono forte nowrap"><a href="{{ base }}/{{ p.id }}">{{ p.numero or ('#' ~ p.id) }}</a></td>
+          <td class="celula-quebra">{{ p.equipamento }}</td>
+          <td>{{ p.departamento or '—' }}</td>
+          <td>{{ p.solicitante or '—' }}</td>
+          <td>{{ m.badge(p.prioridade) }}</td>
+          <td>{{ m.badge(p.status) }}</td>
+          <td class="nowrap">{{ p.data_solicitacao_fmt or '—' }}</td>
+          <td class="col-acoes">
+            <a class="btn btn--suave btn--sm" href="{{ base }}/{{ p.id }}" aria-label="Consultar pedido {{ p.numero or p.id }}">Consultar</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.contagem(itens|length, "pedido(s)") }}
+    {{ m.paginacao_auto() }}
+  {% else %}
+    {% call m.estado_vazio("Nenhum pedido encontrado", "Ajuste os filtros ou abra um novo pedido de manutenção.", "clipboard-list") %}
+      {% if filtrando %}<a class="btn btn--secundario" href="{{ base }}">Limpar filtros</a>{% endif %}
+      <a class="btn btn--primario" href="{{ url_for('pedidos.novo') }}">{{ icone("plus", 16) }} Novo Pedido</a>
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

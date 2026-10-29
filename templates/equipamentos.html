@@ -1,0 +1,125 @@
+{#
+  equipamentos.html - cadastro + lista (Figma 09-10, Manual 1.2).
+  Contexto: itens, item, grupos, subgrupos, departamentos, status_opcoes, total, filtro_grupo, filtro_status, busca, erros, valores.
+  Item: id, codigo, descricao, grupo, subgrupo, departamento, status, id_grupo, id_subgrupo, id_departamento,
+        controla_depreciacao, patrimoniado, vida_util_meses, valor_residual_padrao, ncm.
+  Campos do form: codigo, descricao, id_grupo, id_subgrupo, id_departamento, status, vida_util_meses,
+        valor_residual_padrao, ncm, controla_depreciacao, patrimoniado.
+  O select de Subgrupo e recarregado por JS via /api/subgrupos?grupo_id=...
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Equipamentos · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('equipamentos.editar') if pode is defined else true %}
+{% set f = valores or item or {} %}
+{% set editando = true if item else false %}
+{% set base = url_for('equipamentos.listar') %}
+{% set status_lista = status_opcoes or ['Ativo', 'Em manutenção', 'Baixado'] %}
+{% set status_atual = f.status if f.status else 'Ativo' %}
+{% set pontos = {'Ativo': 'ok', 'Em manutenção': 'aviso', 'Baixado': 'erro'} %}
+
+{% call m.cab_pagina("Cadastro de Equipamentos", (total if total is defined else (itens|length)) ~ " equipamento(s) cadastrado(s)") %}{% endcall %}
+
+<div class="pilha">
+  {% if pode_edit %}
+  <section class="cartao" aria-labelledby="titulo-form">
+    <h2 class="cartao__titulo cartao__titulo--form" id="titulo-form">{{ icone("plus" if not editando else "pencil", 16) }} {{ "Editar equipamento" if editando else "Novo Equipamento" }}</h2>
+    {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+
+    <form method="post" action="{{ base ~ '/' ~ item.id ~ '/editar' if editando else base }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grade form-grade--auto">
+        {{ m.campo("codigo", "Código", f, erros, obrigatorio=true, placeholder="07.000.0001", mono=true, maxlength=30) }}
+        {{ m.campo("descricao", "Descrição", f, erros, obrigatorio=true, placeholder="Nome completo do equipamento", maxlength=160, classe="campo--dobro") }}
+        {{ m.selecao("id_grupo", "Grupo", grupos, f, erros, obrigatorio=true, vazio="Selecione o grupo", **{'data-grupo-select': 'id_subgrupo', 'data-subgrupos-url': url_for('equipamentos.api_subgrupos')}) }}
+        {{ m.selecao("id_subgrupo", "Subgrupo", subgrupos, f, erros, obrigatorio=true, vazio="Selecione o subgrupo") }}
+        {{ m.selecao("id_departamento", "Departamento", departamentos, f, erros, obrigatorio=true, vazio="Selecione o departamento") }}
+
+        <fieldset class="campo">
+          <legend>Status</legend>
+          <div class="opcoes opcoes--coluna">
+            {% for s in status_lista %}
+              <label class="marcador" for="status-{{ loop.index }}">
+                <input type="radio" id="status-{{ loop.index }}" name="status" value="{{ s }}"{{ ' checked' if s == status_atual }}>
+                <span class="ponto ponto--{{ pontos.get(s, '') }}" aria-hidden="true"></span> {{ s }}
+              </label>
+            {% endfor %}
+          </div>
+          {% if erros and erros.status %}<p class="campo__erro">{{ icone("alert-circle", 14) }}<span>{{ erros.status }}</span></p>{% endif %}
+        </fieldset>
+
+        {{ m.campo("vida_util_meses", "Vida útil (meses)", f, erros, tipo="number", placeholder="120", min=0, step=1, inputmode="numeric", opcional=true) }}
+        {{ m.campo("valor_residual_padrao", "Valor residual (R$)", f, erros, tipo="number", placeholder="0,00", min=0, step="0.01", inputmode="decimal", opcional=true) }}
+        {{ m.campo("ncm", "NCM", f, erros, placeholder="00000000", mono=true, maxlength=8, inputmode="numeric", pattern="[0-9]{8}", opcional=true, ajuda="8 dígitos, somente números.") }}
+
+        <div class="campo campo--largo opcoes">
+          {{ m.marcador("controla_depreciacao", "Controla depreciação", marcado=f.controla_depreciacao in (1, '1', true, 'on', 'true')) }}
+          {{ m.marcador("patrimoniado", "Patrimoniado", marcado=f.patrimoniado in (1, '1', true, 'on', 'true')) }}
+        </div>
+      </div>
+      <div class="btn-grupo form-acoes">
+        <button type="submit" class="btn btn--primario btn--grande">{{ icone("plus" if not editando else "save", 16) }} {{ "Salvar alterações" if editando else "Cadastrar" }}</button>
+        {% if editando %}<a class="btn btn--secundario" href="{{ base }}">Cancelar</a>{% endif %}
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+    <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Equipamentos Cadastrados</h2></div>
+    <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+      <div class="campo-busca">
+        <label class="sr-only" for="busca">Buscar equipamento</label>
+        <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Código ou descrição…" data-filtrar-tabela="#tabela-equip">
+      </div>
+      <div>
+        <label class="sr-only" for="filtro-grupo">Filtrar por grupo</label>
+        <select id="filtro-grupo" name="grupo" data-auto-enviar>
+          <option value="">Todos os grupos</option>
+          {{ m.opcoes_html(grupos, filtro_grupo) }}
+        </select>
+      </div>
+      <div>
+        <label class="sr-only" for="filtro-status">Filtrar por status</label>
+        <select id="filtro-status" name="status" data-auto-enviar>
+          <option value="">Todos os status</option>
+          {{ m.opcoes_html(status_lista, filtro_status) }}
+        </select>
+      </div>
+      <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+    </form>
+
+    {% if itens %}
+    <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de equipamentos">
+      <table class="tabela" id="tabela-equip">
+        <thead><tr><th>Código</th><th>Descrição</th><th>Grupo / Subgrupo</th><th>Depto</th><th>Status</th>{% if pode_edit %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+        <tbody>
+        {% for e in itens %}
+          <tr>
+            <td class="mono forte nowrap">{{ e.codigo }}</td>
+            <td class="celula-quebra">{{ e.descricao }}</td>
+            <td>{{ e.grupo or '—' }}<span class="sub">{{ e.subgrupo or '' }}</span></td>
+            <td>{{ e.departamento or '—' }}</td>
+            <td>{{ m.badge(e.status) }}</td>
+            {% if pode_edit %}<td class="col-acoes">
+              <a class="btn btn--suave btn--sm" href="{{ base }}/{{ e.id }}/editar" aria-label="Editar {{ e.descricao }}">Editar</a>
+              {{ m.excluir(base ~ '/' ~ e.id ~ '/excluir', 'Excluir o equipamento "' ~ e.descricao ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ e.descricao) }}
+            </td>{% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ m.contagem(itens|length, "equipamento(s) listado(s)") }}
+    {{ m.paginacao_auto() }}
+    {% else %}
+      {% call m.estado_vazio("Nenhum equipamento encontrado", "Ajuste a busca ou os filtros, ou cadastre um novo equipamento.", "cpu") %}
+        {% if busca or filtro_grupo or filtro_status %}<a class="btn btn--secundario" href="{{ base }}">Limpar filtros</a>{% endif %}
+      {% endcall %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

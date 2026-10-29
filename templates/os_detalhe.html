@@ -1,0 +1,247 @@
+{#
+  os_detalhe.html - detalhe da OS com pecas, servicos, apontamentos e totais (Manual 2.2).
+  Contexto: os, itens_os, servicos_os, apontamentos, pecas_disponiveis, prestadores, tipos_apontamento, totais, somente_leitura,
+            (opcional) erros/valores quando um dos sub-formularios falha.
+  os: id, numero, status, id_pedido, equipamento, tecnico, data_abertura_fmt, data_fechamento_fmt, prioridade, observacao.
+  itens_os: id, id_peca, peca (nome), quantidade, valor_unitario_fmt, valor_total_fmt.
+  servicos_os: id, descricao_servico, prestador, valor_servico_fmt.
+  apontamentos: data_fmt, tecnico, horas_trabalhadas, tipo, observacao.
+  Campos dos sub-formularios: id_peca+quantidade | descricao_servico+valor_servico+id_prestador | data+horas_trabalhadas+tipo+observacao.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}{{ os.numero or ('OS-' ~ os.id) }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set base = url_for('ordens.listar') %}
+{% set url_os = base ~ '/' ~ os.id %}
+{% set ro = somente_leitura %}
+{% set f = valores or {} %}
+{% set perfil = usuario_atual.perfil if usuario_atual else '' %}
+{# flags do backend; sem elas (ex.: harness), cai para a regra por perfil #}
+{% set pode_ed = pode_editar if pode_editar is defined else (not ro) %}
+{% set pode_fe = pode_fechar if pode_fechar is defined else (not ro) %}
+{% set pode_re = pode_reabrir if pode_reabrir is defined else false %}
+{% set pode_ex = pode_excluir if pode_excluir is defined else (perfil == 'Administrador') %}
+{% set restrito = visao_restrita if visao_restrita is defined else false %}
+{% set encerrada = os.status in ('Concluída', 'Cancelada') %}
+{% set tot = totais or {} %}
+{% set numero = os.numero or ('OS-' ~ os.id) %}
+
+{% call m.cab_pagina(numero, os.equipamento or 'Ordem de serviço sem pedido vinculado') %}
+  <a class="btn btn--secundario" href="{{ base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+  {% if pode_ed %}
+    <a class="btn btn--secundario" href="{{ url_os }}/editar">{{ icone("pencil", 16) }} Editar</a>
+  {% endif %}
+  {% if pode_fe %}
+    {{ m.acao_post(url_os ~ '/fechar', 'Fechar OS', classe='btn btn--verde', icone_nome='check-circle', confirmar='Fechar a ' ~ numero ~ '? Depois disso ela ficará somente leitura e o pedido vinculado será concluído.', titulo='Fechar ordem de serviço', botao='Fechar OS', tom='ok') }}
+  {% endif %}
+  {% if pode_re %}
+    {{ m.acao_post(url_os ~ '/reabrir', 'Reabrir OS', classe='btn btn--secundario', icone_nome='refresh', confirmar='Reabrir a ' ~ numero ~ '? O pedido vinculado volta a ficar em andamento.', titulo='Reabrir ordem de serviço', botao='Reabrir OS', tom='ok') }}
+  {% endif %}
+  {% if pode_ex %}
+    {{ m.excluir(url_os ~ '/excluir', 'Excluir a ' ~ numero ~ '? Peças usadas serão devolvidas ao estoque. Esta ação não pode ser desfeita.', classe='btn btn--perigo', aria='Excluir ' ~ numero) }}
+  {% endif %}
+{% endcall %}
+
+{% if encerrada %}
+  <p class="aviso aviso--info" role="status">{{ icone("info", 18) }}<span class="aviso__texto">Esta ordem está <strong>{{ os.status }}</strong> e não pode mais ser alterada{% if pode_re %} (a menos que seja reaberta){% endif %}.</span></p>
+  <div class="mb"></div>
+{% elif ro and not restrito %}
+  <p class="aviso aviso--info" role="status">{{ icone("info", 18) }}<span class="aviso__texto">Você pode consultar{% if pode_fe %} e fechar{% endif %} esta ordem. A edição de peças, serviços e apontamentos é da equipe técnica.</span></p>
+  <div class="mb"></div>
+{% endif %}
+
+{# ---------------- dados gerais ---------------- #}
+<section class="cartao" aria-labelledby="t-dados">
+  <div class="cartao__cab">
+    <h2 class="cartao__titulo" id="t-dados">Dados da ordem</h2>
+    {{ m.badge(os.status) }}
+  </div>
+  <dl class="def-lista">
+    <div><dt>Pedido vinculado</dt><dd>{% if os.id_pedido %}<a href="{{ url_for('pedidos.listar') }}/{{ os.id_pedido }}">{{ os.pedido_numero or ('#' ~ os.id_pedido) }}</a>{% else %}Sem pedido vinculado{% endif %}</dd></div>
+    <div><dt>Equipamento</dt><dd>{{ os.equipamento or '—' }}</dd></div>
+    <div><dt>Técnico responsável</dt><dd>{{ os.tecnico or os.responsavel or '—' }}</dd></div>
+    <div><dt>Data de abertura</dt><dd>{{ os.data_abertura_fmt or '—' }}</dd></div>
+    <div><dt>Data de fechamento</dt><dd>{{ os.data_fechamento_fmt or '—' }}</dd></div>
+    {% if os.prioridade %}<div><dt>Prioridade</dt><dd>{{ m.badge(os.prioridade) }}</dd></div>{% endif %}
+    <div class="largo"><dt>Observações</dt><dd class="texto-livre">{{ os.observacao or '—' }}</dd></div>
+  </dl>
+</section>
+
+{% if not restrito %}
+{# ---------------- pecas usadas ---------------- #}
+<section class="cartao cartao--sem-pad mt" aria-labelledby="t-pecas">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="t-pecas">{{ icone("package", 18) }} Peças usadas</h2></div>
+  {% if itens_os %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Peças usadas na OS">
+    <table class="tabela">
+      <thead><tr><th>Peça</th><th class="col-num">Qtd.</th><th class="col-num">Valor unit.</th><th class="col-num">Total</th>{% if not ro %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for i in itens_os %}
+        <tr>
+          <td class="forte celula-quebra">{{ i.peca or i.nome }}{% if i.peca_codigo %}<span class="sub mono">{{ i.peca_codigo }}</span>{% endif %}</td>
+          <td class="col-num">{{ i.quantidade_fmt if i.quantidade_fmt is defined else i.quantidade }}</td>
+          <td class="col-num nowrap">{{ i.valor_unitario_fmt }}</td>
+          <td class="col-num nowrap forte">{{ i.valor_total_fmt }}</td>
+          {% if not ro %}
+          <td class="col-acoes celula-quebra">
+            <details class="edicao-inline">
+              <summary class="btn btn--suave btn--sm" aria-label="Editar peça {{ i.peca or i.nome }}">Editar Peça</summary>
+              <form method="post" action="{{ url_os }}/pecas/{{ i.id }}/editar" class="edicao-inline__form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="sr-only" for="qtd-{{ i.id }}">Quantidade de {{ i.peca or i.nome }}</label>
+                <input type="number" id="qtd-{{ i.id }}" name="quantidade" value="{{ i.quantidade|int if i.quantidade == i.quantidade|int else i.quantidade }}" min="0.001" step="any" inputmode="decimal" required>
+                <button type="submit" class="btn btn--primario btn--sm">Salvar</button>
+              </form>
+            </details>
+            {{ m.excluir(url_os ~ '/pecas/' ~ i.id ~ '/excluir', 'Remover a peça "' ~ (i.peca or i.nome) ~ '" da OS? A quantidade volta para o estoque.', rotulo='Excluir Peça', aria='Excluir peça ' ~ (i.peca or i.nome), titulo='Remover peça', botao='Excluir peça') }}
+          </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="3">Total em peças</td><td class="col-num nowrap">{{ tot.pecas_fmt or '—' }}</td>{% if not ro %}<td></td>{% endif %}</tr></tfoot>
+    </table>
+  </div>
+  {% else %}
+    {{ m.estado_vazio("Nenhuma peça usada", "As peças adicionadas aqui são baixadas do estoque." if not ro else "", "package") }}
+  {% endif %}
+
+  {% if not ro %}
+  <form method="post" action="{{ url_os }}/pecas" class="subform" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3 class="subform__titulo">Adicionar peça</h3>
+    <div class="subform__campos">
+      <div class="campo campo--cresce">
+        <label for="peca-id_peca">Peça<span class="obrig" aria-hidden="true">*</span></label>
+        <select id="peca-id_peca" name="id_peca" required>
+          <option value="">Selecione a peça</option>
+          {% for p in (pecas_disponiveis or []) %}
+            <option value="{{ p.id }}"{{ ' selected' if f.id_peca|string == p.id|string }}>{{ p.nome }}{% if p.codigo %} [{{ p.codigo }}]{% endif %}{% if p.qtde_estoque is defined %} — estoque: {{ p.qtde_fmt if p.qtde_fmt is defined else p.qtde_estoque }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        {{ m.msg_erro(erros, 'id_peca', 'peca-id_peca') }}
+      </div>
+      {{ m.campo("quantidade", "Quantidade", f, erros, tipo="number", obrigatorio=true, prefixo="peca-", min=0, step="any", inputmode="decimal", classe="campo--curto") }}
+      <button type="submit" class="btn btn--primario">{{ icone("plus", 16) }} Adicionar Peça</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+{# ---------------- servicos executados ---------------- #}
+<section class="cartao cartao--sem-pad mt" aria-labelledby="t-serv">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="t-serv">{{ icone("wrench", 18) }} Serviços executados</h2></div>
+  {% if servicos_os %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Serviços executados na OS">
+    <table class="tabela">
+      <thead><tr><th>Descrição</th><th>Prestador</th><th class="col-num">Valor</th>{% if not ro %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for s in servicos_os %}
+        <tr>
+          <td class="forte celula-quebra">{{ s.descricao_servico }}</td>
+          <td>{{ s.prestador or 'Equipe interna' }}</td>
+          <td class="col-num nowrap forte">{{ s.valor_servico_fmt }}</td>
+          {% if not ro %}<td class="col-acoes">{{ m.excluir(url_os ~ '/servicos/' ~ s.id ~ '/excluir', 'Remover o serviço "' ~ s.descricao_servico ~ '" da OS?', aria='Excluir serviço ' ~ s.descricao_servico, titulo='Remover serviço') }}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="2">Total em serviços</td><td class="col-num nowrap">{{ tot.servicos_fmt or '—' }}</td>{% if not ro %}<td></td>{% endif %}</tr></tfoot>
+    </table>
+  </div>
+  {% else %}
+    {{ m.estado_vazio("Nenhum serviço registrado", "", "wrench") }}
+  {% endif %}
+
+  {% if not ro %}
+  <form method="post" action="{{ url_os }}/servicos" class="subform" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3 class="subform__titulo">Adicionar serviço</h3>
+    <div class="subform__campos">
+      {{ m.campo("descricao_servico", "Descrição do serviço", f, erros, obrigatorio=true, prefixo="serv-", maxlength=200, classe="campo--cresce") }}
+      <div class="campo">
+        <label for="serv-id_prestador">Prestador <span class="opcional">(opcional)</span></label>
+        <select id="serv-id_prestador" name="id_prestador">
+          <option value="">Equipe interna</option>
+          {{ m.opcoes_html(prestadores, f.id_prestador) }}
+        </select>
+      </div>
+      {{ m.campo("valor_servico", "Valor (R$)", f, erros, tipo="number", obrigatorio=true, prefixo="serv-", min=0, step="0.01", inputmode="decimal", placeholder="0,00", classe="campo--curto") }}
+      <button type="submit" class="btn btn--primario">{{ icone("plus", 16) }} Adicionar Serviço</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+{% endif %}
+
+{# ---------------- apontamentos ---------------- #}
+<section class="cartao cartao--sem-pad mt" aria-labelledby="t-apont">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="t-apont">{{ icone("clock", 18) }} Apontamentos</h2></div>
+  {% if apontamentos %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Apontamentos da OS">
+    <table class="tabela">
+      <thead><tr><th>Data</th><th>Técnico</th><th>Tipo</th><th class="col-num">Horas</th><th>Observação</th>{% if not ro %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for a in apontamentos %}
+        <tr>
+          <td class="nowrap">{{ a.data_fmt or a.data }}</td>
+          <td>{{ a.tecnico or '—' }}</td>
+          <td>{% if a.tipo %}{{ m.badge(a.tipo, 'azul') }}{% else %}—{% endif %}</td>
+          <td class="col-num">{{ a.horas_fmt if a.horas_fmt is defined else a.horas_trabalhadas }}</td>
+          <td class="celula-quebra">{{ a.observacao or '—' }}</td>
+          {% if not ro %}<td class="col-acoes">{{ m.excluir(url_os ~ '/apontamentos/' ~ a.id ~ '/excluir', 'Remover este apontamento de ' ~ (a.data_fmt or '') ~ '?', aria='Excluir apontamento de ' ~ (a.data_fmt or a.data), titulo='Remover apontamento') }}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ m.estado_vazio("Nenhum apontamento", "", "clock") }}
+  {% endif %}
+
+  {% if not ro %}
+  <form method="post" action="{{ url_os }}/apontamentos" class="subform" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3 class="subform__titulo">Registrar apontamento</h3>
+    <div class="subform__campos">
+      {{ m.campo("data", "Data", {'data': f.data if f.data else (hoje_iso if hoje_iso is defined else '')}, erros, tipo="date", prefixo="apont-", classe="campo--curto") }}
+      {{ m.selecao("tipo", "Tipo", tipos_apontamento, f, erros, prefixo="apont-", vazio="Selecione", opcional=true) }}
+      {{ m.campo("horas_trabalhadas", "Horas", f, erros, tipo="number", obrigatorio=true, prefixo="apont-", min=0, step="0.25", inputmode="decimal", classe="campo--curto") }}
+      {{ m.campo("observacao", "Observação", f, erros, prefixo="apont-", maxlength=300, classe="campo--cresce", opcional=true) }}
+      <button type="submit" class="btn btn--primario">{{ icone("plus", 16) }} Registrar</button>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+{# ---------------- totais ---------------- #}
+{% if not restrito %}
+<section class="cartao mt" aria-labelledby="t-tot">
+  <h2 class="cartao__titulo" id="t-tot">Totais</h2>
+  <dl class="totais">
+    <div><dt>Peças</dt><dd>{{ tot.pecas_fmt or '—' }}</dd></div>
+    <div><dt>Serviços</dt><dd>{{ tot.servicos_fmt or '—' }}</dd></div>
+    <div class="totais__geral"><dt>Total geral</dt><dd>{{ tot.geral_fmt or '—' }}</dd></div>
+  </dl>
+</section>
+{% endif %}
+
+{# ---------------- historico ---------------- #}
+{# o historico cita pecas e valores: fica fora da visao restrita (Usuario Comum) #}
+{% if historico and not restrito %}
+<section class="cartao cartao--sem-pad mt" aria-labelledby="t-hist">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="t-hist">{{ icone("history", 18) }} Histórico</h2></div>
+  <ol class="linha-tempo">
+    {% for h in historico %}
+      <li>
+        <span class="linha-tempo__quando">{{ h.data_fmt or h.data }}</span>
+        <span class="linha-tempo__texto"><strong>{{ h.acao }}</strong>{% if h.usuario %} · {{ h.usuario }}{% endif %}{% if h.detalhe %}<span class="sub">{{ h.detalhe }}</span>{% endif %}</span>
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+{% endblock %}

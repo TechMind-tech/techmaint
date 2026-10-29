@@ -1,0 +1,66 @@
+{#
+  fornecedores.html - lista de fornecedores (Figma 13, Manual 1.4). O cadastro fica em /fornecedores/novo.
+  Contexto: itens, busca, filtro_ativo (todos|ativos|inativos), ufs.
+  Item: id, razao_social, fantasia, cnpj, telefone, email, municipio, uf, ativo.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Fornecedores · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set pode_edit = pode('fornecedores.editar') if pode is defined else true %}
+{% set base = url_for('fornecedores.listar') %}
+{% call m.cab_pagina("Cadastro de Fornecedores", "Fornecedores e prestadores de serviço") %}
+  {% if pode_edit %}<a class="btn btn--primario" href="{{ base }}/novo">{{ icone("plus", 16) }} Novo Fornecedor</a>{% endif %}
+{% endcall %}
+
+<section class="cartao cartao--sem-pad" aria-labelledby="titulo-lista">
+  <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-lista">Lista de Fornecedores</h2></div>
+  <form method="get" action="{{ base }}" class="filtros filtros--cartao" role="search" data-filtros>
+    <div class="campo-busca">
+      <label class="sr-only" for="busca">Buscar fornecedor</label>
+      <input type="search" id="busca" name="busca" value="{{ busca or '' }}" placeholder="Buscar razão social, CNPJ ou e-mail…" data-filtrar-tabela="#tabela-forn">
+    </div>
+    <div>
+      <label class="sr-only" for="filtro-ativo">Situação</label>
+      <select id="filtro-ativo" name="ativo" data-auto-enviar>
+        <option value="todos"{{ ' selected' if filtro_ativo in (none, 'todos', '') }}>Todos</option>
+        <option value="ativos"{{ ' selected' if filtro_ativo == 'ativos' }}>Ativos</option>
+        <option value="inativos"{{ ' selected' if filtro_ativo == 'inativos' }}>Inativos</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn--ciano">{{ icone("search", 16) }} Pesquisar</button>
+  </form>
+
+  {% if itens %}
+  <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela de fornecedores">
+    <table class="tabela tabela--compacta" id="tabela-forn">
+      <thead><tr><th>Razão social</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th>Cidade/UF</th><th>Status</th>{% if pode_edit %}<th class="col-acoes"><span class="sr-only">Ações</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for x in itens %}
+        <tr>
+          <td class="forte celula-quebra">{{ x.razao_social }}{% if x.fantasia %}<span class="sub">{{ x.fantasia }}</span>{% endif %}</td>
+          <td class="mono nowrap">{{ x.cnpj_fmt or x.cnpj }}</td>
+          <td class="nowrap">{{ x.telefone or '—' }}</td>
+          <td>{{ x.email or '—' }}</td>
+          <td class="nowrap">{{ x.municipio or '—' }}{% if x.uf %}/{{ x.uf }}{% endif %}</td>
+          <td>{{ m.badge('Ativo' if x.ativo else 'Inativo') }}</td>
+          {% if pode_edit %}<td class="col-acoes">
+            <a class="btn btn--suave btn--sm" href="{{ base }}/{{ x.id }}/editar" aria-label="Editar {{ x.razao_social }}">Editar</a>
+            {{ m.excluir(base ~ '/' ~ x.id ~ '/excluir', 'Excluir o fornecedor "' ~ x.razao_social ~ '"? Esta ação não pode ser desfeita.', aria='Excluir ' ~ x.razao_social) }}
+          </td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ m.contagem(itens|length, "fornecedor(es) encontrado(s)") }}
+    {{ m.paginacao_auto() }}
+  {% else %}
+    {% call m.estado_vazio("Nenhum fornecedor encontrado", "Ajuste a busca ou cadastre um novo fornecedor.", "truck") %}
+      {% if pode_edit %}<a class="btn btn--primario" href="{{ base }}/novo">{{ icone("plus", 16) }} Novo Fornecedor</a>{% endif %}
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

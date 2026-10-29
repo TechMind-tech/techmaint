@@ -1,0 +1,695 @@
+[
+ {
+  "codigo": "07.000.0002",
+  "descricao": "BALANCA 02 (BORRACHA) - DIGITRON SERIE: 8956/2004",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0003",
+  "descricao": "BALANCA 03 (CARGUINHA) - DIGITRON SERIE: 355528/2011",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0006",
+  "descricao": "BALANCA 04 (EMBALAGEM) - DIGITRON SERIE: 35864/2011",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0021",
+  "descricao": "BALANCA 05 (ACELERADOR) - URANO UDR 6001/1 S",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0022",
+  "descricao": "BALANCA 06 (ACELERADOR) - TOLEDO SERIE 11930541",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0036",
+  "descricao": "BALANCA 07 (ACELERADOR) - TOLEDO SERIE 12045913",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0039",
+  "descricao": "BALANCA 08 (BORRACHA) - TOLEDO SERIE 12236026",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0062",
+  "descricao": "BALANCA 09 (BORRACHA) 60KG X 10G - TOLEDO SERIE 12789325",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0001",
+  "descricao": "BALANCA DIGITRON 50 KG - SERIE 21914/2008",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 107,
+  "subgrupo": "Balanças de Processo",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0051",
+  "descricao": "BANBURY 1 - CILINDRO ABERTO",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 101,
+  "subgrupo": "Bambury",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0049",
+  "descricao": "BANBURY 2 - CILINDRO ABERTO",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 101,
+  "subgrupo": "Bambury",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0060",
+  "descricao": "BATERIA 01 - NOBREAK 03",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0047",
+  "descricao": "BEBEDOURO",
+  "id_grupo": 8,
+  "grupo": "Móveis e Utensílios",
+  "id_subgrupo": 81,
+  "subgrupo": "Eletrodomésticos",
+  "departamento": "Administração"
+ },
+ {
+  "codigo": "07.000.0066",
+  "descricao": "BOMBA 1 (RESFRIADOR)",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 28,
+  "subgrupo": "Bombas",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "07.000.0067",
+  "descricao": "BOMBA 2 (RESFRIADOR)",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 28,
+  "subgrupo": "Bombas",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "07.000.0052",
+  "descricao": "CILINDRO 1",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 100,
+  "subgrupo": "Cilindros",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0053",
+  "descricao": "CILINDRO 2",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 100,
+  "subgrupo": "Cilindros",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0054",
+  "descricao": "CILINDRO 3",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 100,
+  "subgrupo": "Cilindros",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0065",
+  "descricao": "COMPRESSOR METALPLAN",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 27,
+  "subgrupo": "Compressores",
+  "departamento": "Infraestrutura"
+ },
+ {
+  "codigo": "07.000.0028",
+  "descricao": "COMPUTADOR 01 - DELL INSPIRON",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 130,
+  "subgrupo": "Computadores",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0004",
+  "descricao": "COMPUTADOR 01 - HP ALL IN ONE I3",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 130,
+  "subgrupo": "Computadores",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0008",
+  "descricao": "COMPUTADOR 03 - LENOVO",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 130,
+  "subgrupo": "Computadores",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0014",
+  "descricao": "COMPUTADOR 04 - PC WORK PENTIUM (PRODUCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 130,
+  "subgrupo": "Computadores",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0050",
+  "descricao": "EMPILHADEIRA HYSTER 2014",
+  "id_grupo": 5,
+  "grupo": "Logística",
+  "id_subgrupo": 50,
+  "subgrupo": "Empilhadeiras",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0019",
+  "descricao": "ESTABILIZADOR 01 - BMI 1000 VA (IMPR. ELO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0024",
+  "descricao": "ESTABILIZADOR 02 - BMI 1000 VA (RECEPCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0025",
+  "descricao": "ESTABILIZADOR 03 - BMI 1000 VA (RECEPCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0027",
+  "descricao": "ESTABILIZADOR 04 - BMI 1000 VA (PRODUCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0048",
+  "descricao": "ESTABILIZADOR 05/06 - TS SHARA 1000 VA BIVOLT",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0063",
+  "descricao": "EX-709 MAQ VERT DE MOLDAR POR INJECAO",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 99,
+  "subgrupo": "Injetoras",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0023",
+  "descricao": "FIAT STRADA FIRE - DWJ9270",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 19,
+  "subgrupo": "Caminhonetes",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0015",
+  "descricao": "FIAT TORO - FAB 2020 MOD 2021",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 19,
+  "subgrupo": "Caminhonetes",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0018",
+  "descricao": "FIAT TORO VOLCANO 2.0 AT9",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 19,
+  "subgrupo": "Caminhonetes",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0007",
+  "descricao": "HOMOGEINIZADOR 01",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 102,
+  "subgrupo": "Misturadores e Homogeneizadores",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0012",
+  "descricao": "HOMOGEINIZADOR 02",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 102,
+  "subgrupo": "Misturadores e Homogeneizadores",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0029",
+  "descricao": "IMPRESSORA 01 - HP PHOTOSMART C4400",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 132,
+  "subgrupo": "Impressoras",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0030",
+  "descricao": "IMPRESSORA 02 - HP LASER JET P1120W",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 132,
+  "subgrupo": "Impressoras",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0013",
+  "descricao": "IMPRESSORA 03 - HP LASER JET PRO MFP M225W",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 132,
+  "subgrupo": "Impressoras",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0031",
+  "descricao": "INJETORA 01 - YIZUMI",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 99,
+  "subgrupo": "Injetoras",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0057",
+  "descricao": "INJETORA 02 - YIZUMI",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 99,
+  "subgrupo": "Injetoras",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0058",
+  "descricao": "INJETORA 03 - YIZUMI",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 99,
+  "subgrupo": "Injetoras",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0045",
+  "descricao": "LEITOR DE CODIGO DE BARRAS LI180 NONUS",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 136,
+  "subgrupo": "Coletores de Dados",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0064",
+  "descricao": "MACACO JACARE 3 TON CURTO REBAIXADO",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 16,
+  "subgrupo": "Ferramentas Especiais",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "07.000.0043",
+  "descricao": "MICRO-ONDAS",
+  "id_grupo": 8,
+  "grupo": "Móveis e Utensílios",
+  "id_subgrupo": 81,
+  "subgrupo": "Eletrodomésticos",
+  "departamento": "Administração"
+ },
+ {
+  "codigo": "05.970.0027",
+  "descricao": "MOLDE A50 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0031",
+  "descricao": "MOLDE A509 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0004",
+  "descricao": "MOLDE A509 (PRENSA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0015",
+  "descricao": "MOLDE A60 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0028",
+  "descricao": "MOLDE A609 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0006",
+  "descricao": "MOLDE A69 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0032",
+  "descricao": "MOLDE A709 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0025",
+  "descricao": "MOLDE A99 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0029",
+  "descricao": "MOLDE AG (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0030",
+  "descricao": "MOLDE AP (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "05.970.0007",
+  "descricao": "MOLDE DA-60 (INJETORA)",
+  "id_grupo": 4,
+  "grupo": "Ferramentaria",
+  "id_subgrupo": 11,
+  "subgrupo": "Moldes",
+  "departamento": "Manutenção"
+ },
+ {
+  "codigo": "07.000.0009",
+  "descricao": "NOBREAK 01 - SMS 1400 VA (RECEPCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0042",
+  "descricao": "NOBREAK 02 - BMI 1200 VA (RECEPCAO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0059",
+  "descricao": "NOBREAK 03 - SMS 1500 VA (SERVIDOR)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 135,
+  "subgrupo": "Nobreaks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0069",
+  "descricao": "NOTEBOOK DELL 1",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 129,
+  "subgrupo": "Notebooks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0070",
+  "descricao": "NOTEBOOK DELL 2",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 129,
+  "subgrupo": "Notebooks",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0038",
+  "descricao": "PAQUIMETRO 02",
+  "id_grupo": 9,
+  "grupo": "Laboratório / Qualidade",
+  "id_subgrupo": 48,
+  "subgrupo": "Metrologia",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0055",
+  "descricao": "PRENSA 1",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 115,
+  "subgrupo": "Máquinas de Produção Diversas",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0056",
+  "descricao": "PRENSA 2",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 115,
+  "subgrupo": "Máquinas de Produção Diversas",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0046",
+  "descricao": "PRENSA 3",
+  "id_grupo": 3,
+  "grupo": "Produção",
+  "id_subgrupo": 115,
+  "subgrupo": "Máquinas de Produção Diversas",
+  "departamento": "Produção"
+ },
+ {
+  "codigo": "07.000.0044",
+  "descricao": "PRISMA SF ADV R2 BIO+PROX (RELOGIO PONTO)",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 138,
+  "subgrupo": "Controle de Acesso",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0016",
+  "descricao": "RELOGIO ELETRONICO DE PONTO DIMEP",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 138,
+  "subgrupo": "Controle de Acesso",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0010",
+  "descricao": "ROTEADOR WIRELESS N 300 MBPS",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 137,
+  "subgrupo": "Equipamentos de Rede",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0011",
+  "descricao": "SISTEMA DE EXAUSTAO",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 38,
+  "subgrupo": "Exaustores",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "05.900.0056",
+  "descricao": "SWITCH - SG2",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 134,
+  "subgrupo": "Switches",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0020",
+  "descricao": "SWITCH 8 PORTAS 10/100",
+  "id_grupo": 7,
+  "grupo": "TI",
+  "id_subgrupo": 134,
+  "subgrupo": "Switches",
+  "departamento": "TI"
+ },
+ {
+  "codigo": "07.000.0005",
+  "descricao": "TALHA ELETRICA 4000 KG",
+  "id_grupo": 5,
+  "grupo": "Logística",
+  "id_subgrupo": 54,
+  "subgrupo": "Plataformas de Movimentação",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0061",
+  "descricao": "TORRE DE RESFRIAMENTO",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 30,
+  "subgrupo": "Torres de Resfriamento",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "07.000.0068",
+  "descricao": "TORRE RESFRIAMENTO - MENOR",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 30,
+  "subgrupo": "Torres de Resfriamento",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "07.000.0017",
+  "descricao": "TRANSFORMADOR 40 KVA TKS",
+  "id_grupo": 2,
+  "grupo": "Infraestrutura",
+  "id_subgrupo": 24,
+  "subgrupo": "Transformadores",
+  "departamento": "Utilidades"
+ },
+ {
+  "codigo": "07.000.0040",
+  "descricao": "VEICULO HONDA HR-V FNM3993",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 18,
+  "subgrupo": "Automóveis",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0026",
+  "descricao": "VEICULO CELTA DTS6960",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 18,
+  "subgrupo": "Automóveis",
+  "departamento": "Logística"
+ },
+ {
+  "codigo": "07.000.0041",
+  "descricao": "VEICULO FIAT STRADA EVS2262",
+  "id_grupo": 6,
+  "grupo": "Frota",
+  "id_subgrupo": 19,
+  "subgrupo": "Caminhonetes",
+  "departamento": "Logística"
+ }
+]

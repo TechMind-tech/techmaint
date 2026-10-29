@@ -1,0 +1,111 @@
+{#
+  relatorios.html - relatorios detalhados com abas (Figma 20-21, Manual 3.2).
+  Contexto: aba (os|estoque|financeiro|fornecedores), filtros (periodo, departamento_id, tecnico_id),
+            departamentos, tecnicos, tabela (colunas, linhas, rodape), graficos [{id, titulo, tipo, rotulos, valores}].
+  Os dados iniciais vao num <script type="application/json">; "Atualizar" e as abas refazem o fetch de /api/relatorios/<aba>.
+  Sem JS: as abas sao links (?aba=...) e o filtro envia o formulario normalmente.
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Relatórios · TechMaint{% endblock %}
+
+{% block cabecalho_extra %}
+  <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}" defer></script>
+{% endblock %}
+
+{% block conteudo %}
+{% set fl = filtros or {} %}
+{% set perfil = usuario_atual.perfil if usuario_atual else '' %}
+{% set pode_exportar = pode('relatorios.exportar') if pode is defined else perfil in ('Administrador', 'Gestor') %}
+{% set abas_todas = [('os', 'Ordens de Serviço'), ('estoque', 'Estoque'), ('financeiro', 'Financeiro'), ('fornecedores', 'Fornecedores')] %}
+{# Usuario Comum so ve "Ordens"; Tecnico nao ve o financeiro (SPEC secao 2) #}
+{% set abas_visiveis = abas_todas|selectattr(0, 'in', (['os'] if perfil == 'Usuário Comum' else (['os', 'estoque', 'fornecedores'] if perfil == 'Técnico' else ['os', 'estoque', 'financeiro', 'fornecedores'])))|list %}
+{% set aba_atual = aba or 'os' %}
+{% set periodos_lista = [('7d', 'Últimos 7 dias'), ('30d', 'Últimos 30 dias'), ('6m', 'Últimos 6 meses'), ('12m', 'Último ano')] %}
+{# querystring com os filtros atuais (abas e botoes de exportacao) #}
+{% set qs %}{% if fl.periodo %}&amp;periodo={{ fl.periodo }}{% endif %}{% if fl.departamento_id %}&amp;departamento_id={{ fl.departamento_id }}{% endif %}{% if fl.tecnico_id %}&amp;tecnico_id={{ fl.tecnico_id }}{% endif %}{% endset %}
+{% set rel = url_for('relatorios.pagina') %}
+
+{% call m.cab_pagina("Relatórios e Dashboards", "Análises detalhadas e exportação de dados") %}
+  {% if pode_exportar %}
+    <a class="btn btn--secundario" href="{{ rel }}/{{ aba_atual }}/exportar.pdf?aba={{ aba_atual }}{{ qs }}" data-exportar="pdf">{{ icone("download", 16) }} Exportar PDF</a>
+    <a class="btn btn--verde" href="{{ rel }}/{{ aba_atual }}/exportar.xlsx?aba={{ aba_atual }}{{ qs }}" data-exportar="xlsx">{{ icone("file-spreadsheet", 16) }} Exportar Excel</a>
+    <a class="btn btn--fantasma-borda" href="{{ rel }}/{{ aba_atual }}/exportar.csv?aba={{ aba_atual }}{{ qs }}" data-exportar="csv">{{ icone("file-text", 16) }} CSV</a>
+  {% endif %}
+{% endcall %}
+
+<form method="get" action="{{ url_for('relatorios.pagina') }}" class="cartao filtros filtros--painel mb" id="form-filtros-rel" aria-label="Filtros do relatório" data-relatorios data-api="{{ url_for('relatorios.api', aba=aba_atual) }}" data-url-base="{{ rel }}">
+  <input type="hidden" name="aba" value="{{ aba_atual }}">
+  <div class="grupo">
+    <label for="periodo">Período</label>
+    <select id="periodo" name="periodo">{{ m.opcoes_html(periodos_lista, fl.periodo) }}</select>
+  </div>
+  <div class="grupo">
+    <label for="departamento_id">Departamento</label>
+    <select id="departamento_id" name="departamento_id">
+      <option value="">Todos</option>
+      {{ m.opcoes_html(departamentos, fl.departamento_id) }}
+    </select>
+  </div>
+  <div class="grupo">
+    <label for="tecnico_id">Técnico</label>
+    <select id="tecnico_id" name="tecnico_id">
+      <option value="">Todos</option>
+      {{ m.opcoes_html(tecnicos, fl.tecnico_id) }}
+    </select>
+  </div>
+  <button type="submit" class="btn btn--ciano filtros__botao">{{ icone("refresh", 16) }} Atualizar</button>
+</form>
+
+<div class="abas mb" role="tablist" aria-label="Tipo de relatório" data-abas>
+  {% for chave, rotulo in abas_visiveis %}
+    <a class="aba" role="tab" id="aba-{{ chave }}" href="{{ rel }}?aba={{ chave }}{{ qs }}"
+       data-aba="{{ chave }}" aria-controls="painel-relatorio" aria-selected="{{ 'true' if chave == aba_atual else 'false' }}" tabindex="{{ 0 if chave == aba_atual else -1 }}">{{ rotulo }}</a>
+  {% endfor %}
+</div>
+
+<p class="sr-only" role="status" aria-live="polite" data-status-rel></p>
+
+<div id="painel-relatorio" role="tabpanel" aria-labelledby="aba-{{ aba_atual }}" tabindex="-1" data-painel>
+  <div class="grade grade--2 graficos" data-graficos>
+    {% for g in (graficos or []) %}
+      {{ m.grafico(g.id, g.titulo, "Item", "Valor") }}
+    {% endfor %}
+  </div>
+
+  <section class="cartao cartao--sem-pad mt" aria-labelledby="titulo-tabela-rel">
+    <div class="cartao__cab"><h2 class="cartao__titulo" id="titulo-tabela-rel" data-titulo-tabela>{{ (tabela.titulo if tabela and tabela.titulo else 'Relatório Detalhado') }}</h2></div>
+    <div data-tabela>
+      {% set colunas = (tabela.colunas if tabela else []) %}
+      {% set alin = (tabela.alinhamentos if tabela and tabela.alinhamentos else []) %}
+      {% if tabela and tabela.linhas %}
+      <div class="tabela-wrap" tabindex="0" role="region" aria-label="Tabela do relatório">
+        <table class="tabela">
+          <thead><tr>{% for c in colunas %}<th{% if alin[loop.index0] == 'dir' %} class="col-num"{% endif %}>{{ c.rotulo if c is mapping else c }}</th>{% endfor %}</tr></thead>
+          <tbody>
+          {% for linha in tabela.linhas %}
+            <tr>{% for c in colunas %}
+              {% set chave = (c.chave if c is mapping else loop.index0) %}
+              {% set cel = (linha[chave] if linha is mapping or linha is sequence else '') %}
+              <td{% if alin[loop.index0] == 'dir' %} class="col-num nowrap"{% endif %}>{% set rot = (c.rotulo if c is mapping else c)|lower %}{% set tom = {'aberta': 'info', 'aberto': 'info', 'em andamento': 'aviso', 'concluída': 'ok', 'concluída': 'ok', 'concluido': 'ok', 'cancelada': 'neutro', 'cancelado': 'neutro'}.get((cel|string|lower) if cel is not none else '') %}{% if rot == 'status' and tom %}<span class="badge badge--{{ tom }}">{{ cel }}</span>{% else %}{{ cel if cel is not none and cel != '' else '—' }}{% endif %}</td>
+            {% endfor %}</tr>
+          {% endfor %}
+          </tbody>
+          {% if tabela.rodape %}<tfoot><tr>{% for cel in tabela.rodape %}<td{% if alin[loop.index0] == 'dir' %} class="col-num nowrap"{% endif %}>{{ cel }}</td>{% endfor %}</tr></tfoot>{% endif %}
+        </table>
+      </div>
+      {% else %}
+        {{ m.estado_vazio("Sem dados para os filtros escolhidos", "Tente outro período, departamento ou técnico.", "bar-chart") }}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{# dados iniciais para os graficos (evita uma segunda requisicao no primeiro carregamento) #}
+<script type="application/json" id="dados-relatorio">{{ {'aba': aba_atual, 'graficos': graficos or [], 'tabela': tabela or {}}|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/graficos.js') }}" defer></script>
+{% endblock %}

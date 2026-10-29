@@ -1,17 +1,18 @@
 """
-modulos/
---------
-Cada pasta aqui dentro e um MODULO do sistema (um assunto): usuarios,
-departamentos, maquinas, pecas, fornecedores, prestadores.
+Pacote `modulos`: um Blueprint por area do sistema.
 
-Todo modulo tem os mesmos dois arquivos:
-
-    dados.py   -> o SQL daquele assunto (conversa com o banco)
-    rotas.py   -> as telas HTML e a API JSON (conversa com o navegador)
-
-A regra de ouro continua valendo: rotas.py nao escreve SQL e dados.py nao
-conhece HTML.
-
-Para o Flask enxergar um modulo, ele precisa ser registrado no app.py
-(procure por `register_blueprint`).
+Blueprint = um "mini app" com as proprias rotas. O `registrar_blueprints()`
+liga todos eles na aplicacao principal (veja `criar_app()` em app.py).
 """
+
+from . import (auth, configuracoes, departamentos, equipamentos, estoque,
+               fornecedores, ordens, painel, pecas, pedidos, prestadores,
+               relatorios, usuarios)
+
+TODOS = (auth, painel, usuarios, equipamentos, pecas, fornecedores, prestadores,
+         departamentos, pedidos, ordens, estoque, relatorios, configuracoes)
+
+
+def registrar_blueprints(app):
+    for modulo in TODOS:
+        app.register_blueprint(modulo.bp)

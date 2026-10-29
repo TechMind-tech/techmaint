@@ -1,0 +1,54 @@
+{#
+  _form_empresa.html - campos em comum de Fornecedor e Prestador de Servico (Manual 1.4: "mesma logica").
+  Uso: {% import "_form_empresa.html" as fe with context %}   {{ fe.campos(f, erros, ufs, prestador=true, especialidades=[...]) }}
+  Mascaras de CNPJ/CEP/telefone sao progressivas (JS); a validacao oficial e no servidor.
+  Sem consulta de CEP em API externa (o sistema funciona offline) - os campos de endereco sao digitados.
+#}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+
+{% macro campos(f, erros, ufs, prestador=false, especialidades=none) %}
+<fieldset class="secao-form">
+  <legend>Dados da empresa</legend>
+  <div class="form-grade">
+    {{ m.campo("razao_social", "Razão Social", f, erros, obrigatorio=true, maxlength=160, largo=true) }}
+    {{ m.campo("fantasia", "Nome Fantasia", f, erros, maxlength=160, opcional=true) }}
+    {{ m.campo("cnpj", "CNPJ", f, erros, obrigatorio=true, mono=true, placeholder="00.000.000/0000-00", maxlength=18, inputmode="numeric", **{'data-mascara': 'cnpj'}) }}
+    {{ m.campo("inscricao_estadual", "Inscrição Estadual", f, erros, mono=true, maxlength=20, opcional=true) }}
+    {% if prestador %}
+      <div class="campo">
+        <label for="especialidade">Especialidade<span class="obrig" aria-hidden="true">*</span></label>
+        <input type="text" id="especialidade" name="especialidade" value="{{ m.valor_de(f, 'especialidade') }}" list="lista-especialidades" maxlength="80" required aria-required="true" placeholder="Ex.: Mecânica Geral"{% if erros and erros.especialidade %} aria-invalid="true" aria-describedby="especialidade-erro"{% endif %}>
+        <datalist id="lista-especialidades">{% for e in (especialidades or []) %}<option value="{{ e.nome if e is mapping else e }}">{% endfor %}</datalist>
+        {{ m.msg_erro(erros, 'especialidade', 'especialidade') }}
+      </div>
+    {% endif %}
+  </div>
+</fieldset>
+
+<fieldset class="secao-form">
+  <legend>Contato</legend>
+  <div class="form-grade">
+    {{ m.campo("telefone", "Telefone", f, erros, tipo="tel", placeholder="(11) 4000-0000", maxlength=20, inputmode="tel", **{'data-mascara': 'telefone'}) }}
+    {{ m.campo("email", "E-mail", f, erros, tipo="email", placeholder="contato@empresa.com", maxlength=160) }}
+  </div>
+</fieldset>
+
+<fieldset class="secao-form">
+  <legend>Endereço</legend>
+  <div class="form-grade form-grade--3">
+    {{ m.campo("cep", "CEP", f, erros, mono=true, placeholder="00000-000", maxlength=9, inputmode="numeric", **{'data-mascara': 'cep'}) }}
+    {{ m.campo("logradouro", "Logradouro", f, erros, maxlength=160, classe="span-2") }}
+    {{ m.campo("numero", "Número", f, erros, maxlength=10) }}
+    {{ m.campo("complemento", "Complemento", f, erros, maxlength=80, opcional=true) }}
+    {{ m.campo("bairro", "Bairro", f, erros, maxlength=80) }}
+    {{ m.campo("municipio", "Município", f, erros, maxlength=80) }}
+    {{ m.selecao("uf", "UF", ufs, f, erros, vazio="UF") }}
+  </div>
+</fieldset>
+
+<fieldset class="secao-form">
+  <legend>Situação</legend>
+  {{ m.marcador("ativo", "Ativo", marcado=(f.ativo in (1, '1', true, 'on', 'true')) if f else true) }}
+</fieldset>
+{% endmacro %}

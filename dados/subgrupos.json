@@ -1,0 +1,747 @@
+[
+ {
+  "id": 1,
+  "nome": "CLPs",
+  "id_grupo": 15
+ },
+ {
+  "id": 2,
+  "nome": "IHMs",
+  "id_grupo": 15
+ },
+ {
+  "id": 3,
+  "nome": "Inversores de Frequência",
+  "id_grupo": 15
+ },
+ {
+  "id": 4,
+  "nome": "Servomotores",
+  "id_grupo": 15
+ },
+ {
+  "id": 5,
+  "nome": "Sistemas Supervisórios",
+  "id_grupo": 15
+ },
+ {
+  "id": 6,
+  "nome": "Sensores Industriais",
+  "id_grupo": 15
+ },
+ {
+  "id": 7,
+  "nome": "Redes Industriais",
+  "id_grupo": 15
+ },
+ {
+  "id": 8,
+  "nome": "Painéis de Automação",
+  "id_grupo": 15
+ },
+ {
+  "id": 9,
+  "nome": "Robôs Industriais",
+  "id_grupo": 15
+ },
+ {
+  "id": 10,
+  "nome": "Controladores de Temperatura",
+  "id_grupo": 15
+ },
+ {
+  "id": 11,
+  "nome": "Moldes",
+  "id_grupo": 4
+ },
+ {
+  "id": 12,
+  "nome": "Dispositivos",
+  "id_grupo": 4
+ },
+ {
+  "id": 13,
+  "nome": "Gabaritos",
+  "id_grupo": 4
+ },
+ {
+  "id": 14,
+  "nome": "Bancadas",
+  "id_grupo": 4
+ },
+ {
+  "id": 15,
+  "nome": "Equipamentos de Manutenção de Moldes",
+  "id_grupo": 4
+ },
+ {
+  "id": 16,
+  "nome": "Ferramentas Especiais",
+  "id_grupo": 4
+ },
+ {
+  "id": 17,
+  "nome": "Jateadoras",
+  "id_grupo": 4
+ },
+ {
+  "id": 18,
+  "nome": "Automóveis",
+  "id_grupo": 6
+ },
+ {
+  "id": 19,
+  "nome": "Caminhonetes",
+  "id_grupo": 6
+ },
+ {
+  "id": 20,
+  "nome": "Caminhões",
+  "id_grupo": 6
+ },
+ {
+  "id": 21,
+  "nome": "Vans",
+  "id_grupo": 6
+ },
+ {
+  "id": 22,
+  "nome": "Motocicletas",
+  "id_grupo": 6
+ },
+ {
+  "id": 23,
+  "nome": "Carretas",
+  "id_grupo": 6
+ },
+ {
+  "id": 24,
+  "nome": "Transformadores",
+  "id_grupo": 2
+ },
+ {
+  "id": 25,
+  "nome": "Cabine Primária",
+  "id_grupo": 2
+ },
+ {
+  "id": 26,
+  "nome": "Geradores",
+  "id_grupo": 2
+ },
+ {
+  "id": 27,
+  "nome": "Compressores",
+  "id_grupo": 2
+ },
+ {
+  "id": 28,
+  "nome": "Bombas",
+  "id_grupo": 2
+ },
+ {
+  "id": 29,
+  "nome": "Chillers",
+  "id_grupo": 2
+ },
+ {
+  "id": 30,
+  "nome": "Torres de Resfriamento",
+  "id_grupo": 2
+ },
+ {
+  "id": 31,
+  "nome": "Caixa d'Água",
+  "id_grupo": 2
+ },
+ {
+  "id": 32,
+  "nome": "Reservatórios",
+  "id_grupo": 2
+ },
+ {
+  "id": 33,
+  "nome": "Rede Elétrica",
+  "id_grupo": 2
+ },
+ {
+  "id": 34,
+  "nome": "Rede Hidráulica",
+  "id_grupo": 2
+ },
+ {
+  "id": 35,
+  "nome": "Rede de Ar Comprimido",
+  "id_grupo": 2
+ },
+ {
+  "id": 36,
+  "nome": "Sistema de Incêndio",
+  "id_grupo": 2
+ },
+ {
+  "id": 37,
+  "nome": "Sistema de CFTV",
+  "id_grupo": 2
+ },
+ {
+  "id": 38,
+  "nome": "Exaustores",
+  "id_grupo": 2
+ },
+ {
+  "id": 39,
+  "nome": "Elevadores",
+  "id_grupo": 2
+ },
+ {
+  "id": 40,
+  "nome": "Painéis Elétricos",
+  "id_grupo": 2
+ },
+ {
+  "id": 41,
+  "nome": "Equipamentos de Medição",
+  "id_grupo": 9
+ },
+ {
+  "id": 42,
+  "nome": "Instrumentos de Calibração",
+  "id_grupo": 9
+ },
+ {
+  "id": 43,
+  "nome": "Balanças",
+  "id_grupo": 9
+ },
+ {
+  "id": 44,
+  "nome": "Máquinas de Ensaio",
+  "id_grupo": 9
+ },
+ {
+  "id": 45,
+  "nome": "Controle de Qualidade",
+  "id_grupo": 9
+ },
+ {
+  "id": 46,
+  "nome": "Laboratório Físico",
+  "id_grupo": 9
+ },
+ {
+  "id": 47,
+  "nome": "Laboratório Químico",
+  "id_grupo": 9
+ },
+ {
+  "id": 48,
+  "nome": "Metrologia",
+  "id_grupo": 9
+ },
+ {
+  "id": 49,
+  "nome": "Instrumentos de Medição",
+  "id_grupo": 9
+ },
+ {
+  "id": 50,
+  "nome": "Empilhadeiras",
+  "id_grupo": 5
+ },
+ {
+  "id": 51,
+  "nome": "Paleteiras",
+  "id_grupo": 5
+ },
+ {
+  "id": 52,
+  "nome": "Transpaleteiras",
+  "id_grupo": 5
+ },
+ {
+  "id": 53,
+  "nome": "Rebocadores",
+  "id_grupo": 5
+ },
+ {
+  "id": 54,
+  "nome": "Plataformas de Movimentação",
+  "id_grupo": 5
+ },
+ {
+  "id": 55,
+  "nome": "Carrinhos Industriais",
+  "id_grupo": 5
+ },
+ {
+  "id": 56,
+  "nome": "Sistemas de Armazenagem",
+  "id_grupo": 5
+ },
+ {
+  "id": 57,
+  "nome": "Docas",
+  "id_grupo": 5
+ },
+ {
+  "id": 58,
+  "nome": "Elevadores de Carga",
+  "id_grupo": 5
+ },
+ {
+  "id": 59,
+  "nome": "Transportadores Industriais",
+  "id_grupo": 5
+ },
+ {
+  "id": 60,
+  "nome": "Talhas Elétricas",
+  "id_grupo": 5
+ },
+ {
+  "id": 61,
+  "nome": "Estação de Tratamento de Efluentes (ETE)",
+  "id_grupo": 12
+ },
+ {
+  "id": 62,
+  "nome": "Estação de Tratamento de Água (ETA)",
+  "id_grupo": 12
+ },
+ {
+  "id": 63,
+  "nome": "Sistemas de Reuso",
+  "id_grupo": 12
+ },
+ {
+  "id": 64,
+  "nome": "Separadores de Óleo",
+  "id_grupo": 12
+ },
+ {
+  "id": 65,
+  "nome": "Coleta de Resíduos",
+  "id_grupo": 12
+ },
+ {
+  "id": 66,
+  "nome": "Equipamentos de Controle Ambiental",
+  "id_grupo": 12
+ },
+ {
+  "id": 67,
+  "nome": "Paquímetros",
+  "id_grupo": 14
+ },
+ {
+  "id": 68,
+  "nome": "Micrômetros",
+  "id_grupo": 14
+ },
+ {
+  "id": 69,
+  "nome": "Relógios Comparadores",
+  "id_grupo": 14
+ },
+ {
+  "id": 70,
+  "nome": "Calibradores",
+  "id_grupo": 14
+ },
+ {
+  "id": 71,
+  "nome": "Blocos Padrão",
+  "id_grupo": 14
+ },
+ {
+  "id": 72,
+  "nome": "Instrumentos de Inspeção",
+  "id_grupo": 14
+ },
+ {
+  "id": 73,
+  "nome": "Bancadas de Medição",
+  "id_grupo": 14
+ },
+ {
+  "id": 74,
+  "nome": "Mesas",
+  "id_grupo": 8
+ },
+ {
+  "id": 75,
+  "nome": "Cadeiras",
+  "id_grupo": 8
+ },
+ {
+  "id": 76,
+  "nome": "Armários",
+  "id_grupo": 8
+ },
+ {
+  "id": 77,
+  "nome": "Arquivos",
+  "id_grupo": 8
+ },
+ {
+  "id": 78,
+  "nome": "Balcões",
+  "id_grupo": 8
+ },
+ {
+  "id": 79,
+  "nome": "Estantes",
+  "id_grupo": 8
+ },
+ {
+  "id": 80,
+  "nome": "Móveis Planejados",
+  "id_grupo": 8
+ },
+ {
+  "id": 81,
+  "nome": "Eletrodomésticos",
+  "id_grupo": 8
+ },
+ {
+  "id": 82,
+  "nome": "Sofás",
+  "id_grupo": 8
+ },
+ {
+  "id": 83,
+  "nome": "Bancos e Banquetas",
+  "id_grupo": 8
+ },
+ {
+  "id": 84,
+  "nome": "Televisores",
+  "id_grupo": 8
+ },
+ {
+  "id": 85,
+  "nome": "Bebedouros",
+  "id_grupo": 8
+ },
+ {
+  "id": 86,
+  "nome": "Galpões",
+  "id_grupo": 1
+ },
+ {
+  "id": 87,
+  "nome": "Escritórios",
+  "id_grupo": 1
+ },
+ {
+  "id": 88,
+  "nome": "Área Administrativa",
+  "id_grupo": 1
+ },
+ {
+  "id": 89,
+  "nome": "Recepção",
+  "id_grupo": 1
+ },
+ {
+  "id": 90,
+  "nome": "Coberturas",
+  "id_grupo": 1
+ },
+ {
+  "id": 91,
+  "nome": "Fachadas",
+  "id_grupo": 1
+ },
+ {
+  "id": 92,
+  "nome": "Janelas e Esquadrias",
+  "id_grupo": 1
+ },
+ {
+  "id": 93,
+  "nome": "Muros e Cercas",
+  "id_grupo": 1
+ },
+ {
+  "id": 94,
+  "nome": "Portões",
+  "id_grupo": 1
+ },
+ {
+  "id": 95,
+  "nome": "Pisos Industriais",
+  "id_grupo": 1
+ },
+ {
+  "id": 96,
+  "nome": "Instalações Sanitárias",
+  "id_grupo": 1
+ },
+ {
+  "id": 97,
+  "nome": "Cozinha e Refeitório",
+  "id_grupo": 1
+ },
+ {
+  "id": 98,
+  "nome": "Reformas e Benfeitorias",
+  "id_grupo": 1
+ },
+ {
+  "id": 99,
+  "nome": "Injetoras",
+  "id_grupo": 3
+ },
+ {
+  "id": 100,
+  "nome": "Cilindros",
+  "id_grupo": 3
+ },
+ {
+  "id": 101,
+  "nome": "Bambury",
+  "id_grupo": 3
+ },
+ {
+  "id": 102,
+  "nome": "Misturadores e Homogeneizadores",
+  "id_grupo": 3
+ },
+ {
+  "id": 103,
+  "nome": "Descarregadores de Big Bag",
+  "id_grupo": 3
+ },
+ {
+  "id": 104,
+  "nome": "Resfriadores Industriais",
+  "id_grupo": 3
+ },
+ {
+  "id": 105,
+  "nome": "Guilhotinas",
+  "id_grupo": 3
+ },
+ {
+  "id": 106,
+  "nome": "Máquinas de Costura",
+  "id_grupo": 3
+ },
+ {
+  "id": 107,
+  "nome": "Balanças de Processo",
+  "id_grupo": 3
+ },
+ {
+  "id": 108,
+  "nome": "Robôs",
+  "id_grupo": 3
+ },
+ {
+  "id": 109,
+  "nome": "Esteiras",
+  "id_grupo": 3
+ },
+ {
+  "id": 110,
+  "nome": "Secadores",
+  "id_grupo": 3
+ },
+ {
+  "id": 111,
+  "nome": "Dosadores",
+  "id_grupo": 3
+ },
+ {
+  "id": 112,
+  "nome": "Termorreguladores",
+  "id_grupo": 3
+ },
+ {
+  "id": 113,
+  "nome": "Carrinhos de Molde",
+  "id_grupo": 3
+ },
+ {
+  "id": 114,
+  "nome": "Equipamentos Auxiliares",
+  "id_grupo": 3
+ },
+ {
+  "id": 115,
+  "nome": "Máquinas de Produção Diversas",
+  "id_grupo": 3
+ },
+ {
+  "id": 116,
+  "nome": "Prensas",
+  "id_grupo": 3
+ },
+ {
+  "id": 117,
+  "nome": "Câmeras de Monitoramento",
+  "id_grupo": 11
+ },
+ {
+  "id": 118,
+  "nome": "Alarmes",
+  "id_grupo": 11
+ },
+ {
+  "id": 119,
+  "nome": "Cercas Elétricas",
+  "id_grupo": 11
+ },
+ {
+  "id": 120,
+  "nome": "Controle Perimetral",
+  "id_grupo": 11
+ },
+ {
+  "id": 121,
+  "nome": "Portarias e Guaritas",
+  "id_grupo": 11
+ },
+ {
+  "id": 122,
+  "nome": "Sensores de Presença",
+  "id_grupo": 11
+ },
+ {
+  "id": 123,
+  "nome": "Instalações Industriais",
+  "id_grupo": 10
+ },
+ {
+  "id": 124,
+  "nome": "Reformas Prediais",
+  "id_grupo": 10
+ },
+ {
+  "id": 125,
+  "nome": "Adequações de Máquinas",
+  "id_grupo": 10
+ },
+ {
+  "id": 126,
+  "nome": "Projetos de Engenharia",
+  "id_grupo": 10
+ },
+ {
+  "id": 127,
+  "nome": "Obras Civis",
+  "id_grupo": 10
+ },
+ {
+  "id": 128,
+  "nome": "Serviços Terceirizados",
+  "id_grupo": 10
+ },
+ {
+  "id": 129,
+  "nome": "Notebooks",
+  "id_grupo": 7
+ },
+ {
+  "id": 130,
+  "nome": "Computadores",
+  "id_grupo": 7
+ },
+ {
+  "id": 131,
+  "nome": "Monitores",
+  "id_grupo": 7
+ },
+ {
+  "id": 132,
+  "nome": "Impressoras",
+  "id_grupo": 7
+ },
+ {
+  "id": 133,
+  "nome": "Servidores",
+  "id_grupo": 7
+ },
+ {
+  "id": 134,
+  "nome": "Switches",
+  "id_grupo": 7
+ },
+ {
+  "id": 135,
+  "nome": "Nobreaks",
+  "id_grupo": 7
+ },
+ {
+  "id": 136,
+  "nome": "Coletores de Dados",
+  "id_grupo": 7
+ },
+ {
+  "id": 137,
+  "nome": "Equipamentos de Rede",
+  "id_grupo": 7
+ },
+ {
+  "id": 138,
+  "nome": "Controle de Acesso",
+  "id_grupo": 7
+ },
+ {
+  "id": 139,
+  "nome": "Estabilizadores",
+  "id_grupo": 7
+ },
+ {
+  "id": 140,
+  "nome": "Relógios de Ponto",
+  "id_grupo": 7
+ },
+ {
+  "id": 141,
+  "nome": "Roteadores",
+  "id_grupo": 7
+ },
+ {
+  "id": 142,
+  "nome": "Leitores de Código de Barras",
+  "id_grupo": 7
+ },
+ {
+  "id": 143,
+  "nome": "Baterias para Nobreaks",
+  "id_grupo": 7
+ },
+ {
+  "id": 144,
+  "nome": "Centrais de Água Gelada",
+  "id_grupo": 13
+ },
+ {
+  "id": 145,
+  "nome": "Centrais de Ar Comprimido",
+  "id_grupo": 13
+ },
+ {
+  "id": 146,
+  "nome": "Sistemas de Resfriamento",
+  "id_grupo": 13
+ },
+ {
+  "id": 147,
+  "nome": "Sistemas de Aquecimento",
+  "id_grupo": 13
+ },
+ {
+  "id": 148,
+  "nome": "Distribuição de Utilidades",
+  "id_grupo": 13
+ },
+ {
+  "id": 149,
+  "nome": "Equipamentos Auxiliares de Utilidades",
+  "id_grupo": 13
+ }
+]

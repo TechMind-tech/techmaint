@@ -1,0 +1,39 @@
+{#
+  os_form.html - abrir / editar ordem de servico (Figma 18, Manual 2.2).
+  Contexto: pedidos_disponiveis, tecnicos, valores, erros, pedido_id (pre-selecao); em edicao tambem `os`.
+  Campos: id_pedido (opcional), id_equipamento (OS sem pedido), id_tecnico, observacao (+ status na edicao).
+  Pedidos disponiveis: id, rotulo ("#5 | Equipamento (Alta)").
+#}
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% from "_icones.html" import icone %}
+{% block titulo %}{{ "Editar OS" if os else "Nova Ordem de Serviço" }} · TechMaint{% endblock %}
+
+{% block conteudo %}
+{% set f = valores or os or {} %}
+{% set base = url_for('ordens.listar') %}
+{% set pre = (f.id_pedido if f.id_pedido else pedido_id) %}
+{% call m.cab_pagina(("Editar " ~ (os.numero or 'OS-' ~ os.id)) if os else "Nova Ordem de Serviço") %}
+  <a class="btn btn--secundario" href="{{ base ~ '/' ~ os.id if os else base }}">{{ icone("arrow-left", 16) }} Voltar</a>
+{% endcall %}
+
+<form method="post" action="{{ base ~ '/' ~ os.id ~ '/editar' if os else url_for('ordens.nova') }}" class="cartao cartao--estreito" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if erros %}<p class="aviso aviso--erro" role="alert">{{ icone("alert-circle", 18) }}<span class="aviso__texto">Corrija os campos destacados e tente novamente.</span></p>{% endif %}
+  <div class="form-grade form-grade--1">
+    {{ m.selecao("id_pedido", "Pedido vinculado", pedidos_disponiveis, f, erros, vazio="— Sem pedido vinculado —", opcional=true, escolhido=pre) }}
+    {{ m.selecao("id_tecnico", "Técnico responsável", tecnicos, f, erros, obrigatorio=true, vazio="Selecione o técnico") }}
+    {% if not os or not os.id_pedido %}
+      {{ m.selecao("id_equipamento", "Equipamento", equipamentos, f, erros, vazio="— Selecione —", opcional=true, ajuda="Use quando a OS não vem de um pedido (ex.: manutenção preventiva).") }}
+    {% endif %}
+    {% if os %}
+      {{ m.selecao("status", "Status", status_opcoes or ['Aberta', 'Em andamento', 'Cancelada'], f, erros, obrigatorio=true, vazio=none) }}
+    {% endif %}
+    {{ m.area("observacao", "Observações iniciais" if not os else "Observações", f, erros, placeholder="Descreva o que será feito…", linhas=4, maxlength=1000, opcional=true) }}
+  </div>
+  <div class="btn-grupo form-acoes">
+    <button type="submit" class="btn btn--primario btn--grande">{{ icone("plus" if not os else "save", 16) }} {{ "Salvar alterações" if os else "Abrir OS" }}</button>
+    <a class="btn btn--fantasma-borda" href="{{ base ~ '/' ~ os.id if os else base }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
